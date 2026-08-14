@@ -1,0 +1,38 @@
+---
+description: Testing standards for all modules
+globs: "**/*.{spec.ts,e2e-spec.ts,test.ts,test.py}"
+alwaysApply: false
+---
+
+# Testing Standards
+
+## Priority behaviors (must have tests)
+
+- `expiryDate` must be after `issuedDate`
+- Status transitions: active ↔ expiring ↔ expired; renewal → `renewed`; delete → `archived`
+- Status recalculation on date PATCH (Asia/Colombo)
+- Expiry job idempotency (rerun does not double-update or duplicate events)
+- Dashboard aggregation excludes renewed/archived
+- Soft delete and employee cascade
+
+## Conventions
+
+| Module | Location | Naming |
+|---|---|---|
+| NestJS unit | beside module or `test/` | `*.spec.ts` |
+| NestJS e2e | `backend/test/` | `*.e2e-spec.ts` |
+| Python | `expiry-job/tests/` | `test_*.py` |
+| Frontend | `src/lib/**/*.test.ts` | Vitest |
+
+## Practices
+
+- One behavior per test; descriptive test names
+- Mock external I/O (HTTP, EventBridge, DB where unit-testing services)
+- Use fixed dates for timezone-sensitive tests (`Asia/Colombo`)
+- Add regression test for every bug fix
+- Don't test framework boilerplate or trivial getters
+
+## Before merge
+
+- New features include tests for happy path and key edge cases
+- Existing tests still pass (`npm run test`, `python -m pytest`)

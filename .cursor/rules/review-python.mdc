@@ -1,0 +1,44 @@
+---
+description: "REVIEW: Python expiry job code review checklist — invoke manually when reviewing expiry-job changes"
+alwaysApply: false
+---
+
+# Python Expiry Job Review Checklist
+
+Use when reviewing `expiry-job/` changes.
+
+## Architecture
+
+- [ ] No MySQL/direct DB access — HTTP API only
+- [ ] Snapshot-first fetch (no PATCH between GET pages)
+- [ ] Matches `docs/process-flow.md` and Decision #11, #18, #20
+
+## Correctness
+
+- [ ] Uses `Asia/Colombo` date for evaluation (explicit `ZoneInfo`)
+- [ ] Buffer from `COMPLIANCE_EXPIRING_BUFFER_DAYS`
+- [ ] Sends PATCH only when computed status ≠ current
+- [ ] Accepts downgrades (`expiring` → `active`) when applicable
+- [ ] Event payload matches Decision #7 schema; `runId` unique per run
+
+## Idempotency & reliability
+
+- [ ] Skips when `lastEvaluatedStatus` already matches
+- [ ] Retry/backoff + timeout on external calls
+- [ ] Failed batches logged; job does not crash entire run
+- [ ] Login once; re-login on 401 for that request only
+
+## Security & config
+
+- [ ] Credentials from env only
+- [ ] HTTPS in non-local environments
+- [ ] No hardcoded AWS account IDs or ARNs
+
+## Tests
+
+- [ ] Tests for transitions, boundaries, idempotent rerun, empty snapshot
+- [ ] HTTP client mocked; no live AWS required in unit tests
+
+## Output format
+
+List issues by severity with file path and fix. State "no blockers found" if clean.

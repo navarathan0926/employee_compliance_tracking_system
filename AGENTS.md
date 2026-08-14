@@ -6,12 +6,14 @@ Employee Compliance Tracking System. Tracks employee compliance records (visas, 
 
 **Stack (decided, not speculative):**
 - Backend API: NestJS, TypeScript, MySQL (AWS RDS Free Tier), TypeORM
-- Auth: username/password login issuing a JWT
+- Auth: username/password login via Passport.js (`passport-local` + `passport-jwt`) issuing a JWT
 - Scheduled expiry job: Python, calls the NestJS API over HTTP (never accesses MySQL directly); runs locally as a script during development, deployed later as a Lambda behind EventBridge Scheduler
 - Messaging: AWS EventBridge and SQS (Free Tier only, no hardcoded account IDs or ARNs), tested locally before wiring up real AWS resources
 - Frontend: SvelteKit, TypeScript
 
 Full reasoning for each decision above is in `docs/architecture-decisions.md`, read it before making changes that would contradict these choices. Also see `docs/db-schema.md`, `docs/api-doc.md`, `docs/process-flow.md`, and `docs/notes.md` for schema, endpoints, data flow, and open items.
+
+**Implementation order:** `docs/phases/README.md` (4 phases for tight timeline).
 
 ## Project Structure & Module Organization
 
@@ -22,7 +24,7 @@ backend/          # NestJS API
       compliance-records/  # ComplianceRecord entity, service, controller
       employees/            # Employee entity, service, controller
     dashboard/             # analytics/reporting endpoints
-    auth/                   # username/password login, JWT issuance
+    auth/                   # Passport local + JWT strategies, login endpoint
     common/                 # shared pipes, guards, DTOs
   test/
 expiry-job/        # Python scheduled job
@@ -39,8 +41,9 @@ frontend/          # SvelteKit dashboard
         RecordsTable.svelte
         StatusBadge.svelte
     routes/
-      +page.svelte      # dashboard: metrics + expiring soon list
-      +page.ts           # load function, fetches metrics
+      login/+page.svelte    # login form
+      +page.svelte          # dashboard: metrics + expiring soon list
+      +page.ts                # load function, fetches metrics
 docs/               # architecture notes, API contracts, trade-off writeups
 .env.example        # required config keys, no secrets
 ```
@@ -86,10 +89,11 @@ Update this section immediately if any command changes, Codex relies on this bei
 
 Priority coverage areas:
 - Expiry date validation (`expiryDate` must be after `issuedDate`)
-- Status transition logic (active to expiring to expired)
+- Status transition logic (active ↔ expiring ↔ expired; renewal → `renewed`; manual delete → `archived`)
+- Status recalculation on date PATCH (Asia/Colombo calendar date)
 - Idempotency of the scheduled job (no duplicate events on rerun)
 - Dashboard aggregation correctness
-- Soft delete/archive behavior
+- Soft delete/archive and renewal behavior
 
 Add a regression test for every bug fix.
 

@@ -1,0 +1,42 @@
+---
+description: "REVIEW: SvelteKit frontend code review checklist — invoke manually when reviewing frontend changes"
+alwaysApply: false
+---
+
+# SvelteKit Frontend Review Checklist
+
+Use when reviewing `frontend/` changes.
+
+## Architecture
+
+- [ ] API types/responses align with `docs/api-doc.md`
+- [ ] `PUBLIC_API_BASE_URL` used; no hardcoded backend URL
+- [ ] No secrets or private env vars in client bundle
+
+## Auth & security
+
+- [ ] JWT attached to protected API calls
+- [ ] 401 handling (redirect/re-login)
+- [ ] Login route exists; dashboard guarded
+
+## Correctness & UX
+
+- [ ] Metrics and expiring list match API response shapes
+- [ ] Date range filter works (`days` or `from`/`to`)
+- [ ] Status badges cover all relevant statuses
+- [ ] Loading, empty, and error states handled
+- [ ] Paginated lists use `total`/`limit`/`offset` correctly
+
+## Code quality
+
+- [ ] Types in `types.ts`; fetch logic in `api.ts`
+- [ ] Components focused; no business logic duplicated from backend
+- [ ] 2-space indent; consistent naming
+
+## Tests
+
+- [ ] Component/utility tests for non-trivial logic (if present)
+
+## Output format
+
+List issues by severity with file path and fix. State "no blockers found" if clean.

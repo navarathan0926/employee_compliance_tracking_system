@@ -1,0 +1,40 @@
+---
+description: Python expiry job coding standards
+globs: expiry-job/**/*.py
+alwaysApply: true
+---
+
+# Python Standards (expiry-job)
+
+## Style
+
+- 4-space indent; PEP 8; `snake_case` functions/vars; `PascalCase` classes
+- Config isolated in `config.py` (or equivalent) — read env, no secrets in source
+
+## Architecture (mandatory)
+
+- **Never** connect to MySQL; all data via NestJS HTTP API
+- Job flow: login → paginated GET (`status=active,expiring`) → evaluate → bulk PATCH → EventBridge publish
+- **Snapshot-first:** no PATCH between GET pages
+- **Date rule:** `datetime.now(ZoneInfo("Asia/Colombo")).date()` — not `utcnow()` or naive `now()`
+
+## Idempotency & reliability
+
+- Skip when `lastEvaluatedStatus` matches computed status
+- PATCH only when computed status ≠ current status (`active` | `expiring` | `expired`)
+- Exponential backoff + timeout on GET, PATCH, EventBridge
+- Failed PATCH batches: log and continue; unique `runId` per run in event payload
+
+## Event payload
+
+Match Architecture Decision #7: `eventType`, `runId`, `evaluationDate`, `changedRecords[]`, counts, timestamp.
+
+## Tests
+
+- Under `expiry-job/tests/`; behavior names: `test_expiry_transition.py`, `test_idempotent_run.py`
+- Mock HTTP API; test date boundary and buffer logic with fixed Asia/Colombo dates
+
+## Local dev
+
+- Runnable as `python src/main.py`; LocalStack optional for EventBridge
+- `SKIP_EVENT_PUBLISH=true` allowed for core logic tests only

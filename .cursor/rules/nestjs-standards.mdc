@@ -1,0 +1,50 @@
+---
+description: NestJS backend coding standards and patterns
+globs: backend/**/*.ts
+alwaysApply: true
+---
+
+# NestJS Standards
+
+## Style
+
+- 2-space indent; `PascalCase` classes, `camelCase` methods/variables
+- Domain names from docs: `ComplianceRecord`, `ComplianceStatus`, `expiryDate`, `renewedFromId`
+
+## File layout (per module)
+
+```
+compliance-records/
+  compliance-record.entity.ts
+  compliance-record.service.ts
+  compliance-record.controller.ts
+  dto/
+  *.spec.ts
+```
+
+Do not mix entity, HTTP, and business rules in one file.
+
+## Patterns
+
+- **DTOs:** `class-validator` decorators; reject invalid input with `400`
+- **Entities:** TypeORM decorators; `@DeleteDateColumn()` for soft delete; enums match `docs/db-schema.md`
+- **Services:** business logic, transactions, status computation helper (Asia/Colombo date rule)
+- **Controllers:** thin — delegate to services; `@UseGuards(JwtAuthGuard)` on protected routes
+- **Auth:** `auth/` module with `LocalStrategy`, `JwtStrategy`, `AuthService`
+
+## Domain rules (must match docs)
+
+- `expiryDate` > `issuedDate`
+- Renewal: new record + old → `renewed`; use `POST .../renew`, not PATCH for renewals
+- PATCH date changes → recalculate `status` + `lastEvaluatedStatus` in same transaction
+- Employee delete → cascade archive compliance records in one transaction
+- `bulk-status`: idempotent; skip `renewed`/`archived`/missing IDs
+
+## Tests
+
+- `*.spec.ts` beside module; `*.e2e-spec.ts` under `test/`
+- Cover validation, status transitions, soft delete, renewal, dashboard aggregation
+
+## API contract
+
+If endpoints or response shapes change, update `docs/api-doc.md` in the same PR.

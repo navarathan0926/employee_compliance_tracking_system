@@ -1,0 +1,33 @@
+---
+description: Performance requirements for all code changes and planning
+alwaysApply: true
+---
+
+# Performance (all changes)
+
+Full detail: `docs/performance.md`.
+
+## Database
+
+- Integer PKs; index columns in hot-path `WHERE` / `JOIN` / `ORDER BY` (see `docs/db-schema.md` indexes)
+- Default queries exclude soft-deleted rows (`deletedAt IS NULL`)
+- Avoid N+1: use JOIN / TypeORM `relations`, not per-row queries in loops
+- List endpoints: `select` only needed columns; paginate (default 50, max 200)
+
+## Dashboard & aggregation
+
+- Live `COUNT` / `GROUP BY` — no summary table unless Decision #10 is updated
+- Exclude `renewed` and `archived` from metrics
+
+## Expiry job
+
+- Snapshot-first: paginate all GETs, then PATCH in batches (max 200)
+- Skip unchanged records (`lastEvaluatedStatus` / matching status)
+- Exponential backoff + timeout on HTTP and EventBridge calls
+
+## API & frontend
+
+- Paginated responses; never unbounded list returns
+- Deep offset pagination is acceptable at current scale; prefer indexes over full scans
+
+When planning features, note query patterns, expected row counts, and index needs before coding.

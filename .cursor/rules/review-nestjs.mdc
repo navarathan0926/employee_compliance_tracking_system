@@ -1,0 +1,44 @@
+---
+description: "REVIEW: NestJS backend code review checklist — invoke manually when reviewing backend changes"
+alwaysApply: false
+---
+
+# NestJS Code Review Checklist
+
+Use when reviewing `backend/` changes. Report findings by severity: **blocker** / **warning** / **nit**.
+
+## Architecture & contracts
+
+- [ ] Matches `docs/db-schema.md`, `docs/api-doc.md`, architecture decisions
+- [ ] API doc updated if endpoints or responses changed
+- [ ] Module boundaries respected (entity / service / controller / DTO separate)
+
+## Correctness
+
+- [ ] Date validation: `expiryDate` > `issuedDate`
+- [ ] Status computed server-side (Asia/Colombo + buffer); not client-writable
+- [ ] Renewal creates new record; old → `renewed` (not `archived`)
+- [ ] Employee archive cascades in single transaction
+- [ ] `bulk-status` idempotent; skips renewed/archived/missing
+- [ ] Soft-deleted records excluded from default lists and dashboard
+
+## Security
+
+- [ ] JwtAuthGuard on protected routes
+- [ ] DTO validation on all inputs; enums enforced
+- [ ] No secrets, raw SQL interpolation, or hard delete endpoints
+- [ ] bcrypt for passwords; passwordHash never exposed
+
+## Performance
+
+- [ ] Pagination enforced (max 200); no N+1 queries
+- [ ] Indexes considered for new filter/sort columns
+- [ ] Dashboard uses live aggregation (no shadow summary table)
+
+## Tests
+
+- [ ] Unit/e2e tests for new behavior; regression test for bug fixes
+
+## Output format
+
+List each issue with file path, what's wrong, and suggested fix. If clean, state "no blockers found."

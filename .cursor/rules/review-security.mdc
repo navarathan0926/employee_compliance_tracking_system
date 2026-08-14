@@ -1,0 +1,41 @@
+---
+description: "REVIEW: Cross-cutting security review — invoke manually for security-focused review of any changes"
+alwaysApply: false
+---
+
+# Security Review Checklist
+
+Use for security-focused review across backend, expiry-job, and frontend. Reference `docs/security.md`.
+
+## Secrets & deployment
+
+- [ ] No credentials, tokens, or PII in code, logs, or commits
+- [ ] Env vars documented in `.env.example`; production secrets not in repo
+- [ ] AWS identifiers only via env
+
+## Authentication & authorization
+
+- [ ] All non-login routes require valid JWT
+- [ ] No auth bypass for job endpoints
+- [ ] Resource `:id` routes don't assume ID secrecy
+
+## Input & output
+
+- [ ] All inputs validated; enums whitelisted
+- [ ] Error messages don't leak stack traces or internal details in production
+- [ ] SQL injection prevented (parameterized queries only)
+
+## Data integrity
+
+- [ ] Soft delete preserved; audit chain (`renewedFromId`) not broken
+- [ ] Status cannot be tampered via client
+- [ ] Transactions used for multi-row operations (renewal, cascade)
+
+## Transport & CORS
+
+- [ ] HTTPS enforced outside local dev
+- [ ] CORS restricted to known origins
+
+## Output format
+
+Categorize as **critical** / **high** / **medium** / **low**. Critical = must fix before merge.

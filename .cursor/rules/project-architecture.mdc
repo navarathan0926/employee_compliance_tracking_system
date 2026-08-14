@@ -1,0 +1,39 @@
+---
+description: Project stack, structure, and architecture doc authority
+alwaysApply: true
+---
+
+# Project Architecture
+
+Employee Compliance Tracking System — monorepo, **deployed separately** (backend EB, frontend static/EB, expiry job Lambda, RDS, EventBridge→SQS).
+
+Act as a senior engineer on this codebase: follow project docs and rules; prefer minimal, correct diffs over clever abstractions.
+
+## Stack (do not substitute without updating docs)
+
+- **backend/** — NestJS, TypeScript, TypeORM, MySQL, Passport (local + JWT)
+- **expiry-job/** — Python; calls NestJS API over HTTP only (never MySQL)
+- **frontend/** — SvelteKit, TypeScript
+
+## Before structural or behavioral changes
+
+Read `docs/architecture-decisions.md`. If a change contradicts a decision, update that doc first.
+
+Also consult: `docs/db-schema.md`, `docs/api-doc.md`, `docs/process-flow.md`, `docs/security.md`, `docs/performance.md`.
+
+## Module boundaries
+
+- One concern per file: entity / DTO / service / controller separated
+- Config (env, AWS names) in config modules — not in business logic
+- Status computation uses **Asia/Colombo** calendar date + `COMPLIANCE_EXPIRING_BUFFER_DAYS` (shared rule in docs)
+- Dashboard: live-computed metrics (no pre-aggregation table without updating Decision #10)
+
+## Env files
+
+- `.env.example` at repo root is the catalog
+- At implementation: `backend/.env`, `expiry-job/.env`, `frontend/.env` — each service loads only its vars
+
+## Scope discipline
+
+- Minimize diff scope; match existing patterns in the module being edited
+- Add regression tests for bug fixes; document non-obvious business rules in `docs/` when decisions change

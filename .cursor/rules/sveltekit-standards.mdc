@@ -1,0 +1,41 @@
+---
+description: SvelteKit frontend coding standards
+globs: frontend/**/*.{svelte,ts,js}
+alwaysApply: true
+---
+
+# SvelteKit Standards
+
+## Style
+
+- 2-space indent; TypeScript throughout
+- Domain types in `src/lib/types.ts`; API client in `src/lib/api.ts`
+- Components in `src/lib/components/`; routes under `src/routes/`
+
+## Patterns
+
+- **Data loading:** `+page.ts` load functions for server-side fetch where appropriate; keep components presentational
+- **Auth:** store JWT client-side (sessionStorage or cookie per your choice); redirect to `/login` on `401`
+- **API calls:** use `PUBLIC_API_BASE_URL` from env — never hardcode API host
+- **No secrets in frontend:** only `PUBLIC_*` env vars in browser code
+
+## UI scope
+
+- Login page + dashboard (metrics cards, expiring table, date range filter)
+- Reuse components: `MetricsCard`, `DateRangeFilter`, `RecordsTable`, `StatusBadge`
+- Status badges must reflect enum values: `active`, `expiring`, `expired`, `renewed`, `archived`
+
+## API alignment
+
+- Match response shapes in `docs/api-doc.md` (`/dashboard/metrics`, `/dashboard/expiring`)
+- Send `Authorization: Bearer <token>` on all requests except login
+- Handle paginated envelopes: `{ data, total, limit, offset }`
+
+## Tests
+
+- Colocate `*.test.ts` under `src/lib/` (Vitest when configured)
+
+## Accessibility & UX
+
+- Show loading and error states for API calls
+- Date displays: user-friendly format; API uses `YYYY-MM-DD`

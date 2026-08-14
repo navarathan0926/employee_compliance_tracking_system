@@ -1,0 +1,40 @@
+---
+description: Security requirements for all code changes and planning
+alwaysApply: true
+---
+
+# Security (all changes)
+
+Full detail: `docs/security.md`.
+
+## Secrets & config
+
+- Never commit `.env`, credentials, real employee data, AWS account IDs, or ARNs
+- No hardcoded secrets or fallback JWT secrets; read from env
+- AWS resource names via env only (`EVENTBRIDGE_BUS_NAME`, `SQS_QUEUE_NAME`, etc.)
+
+## API & auth
+
+- All routes except `POST /auth/login` require `JwtAuthGuard`
+- Passport: `passport-local` (login), `passport-jwt` (protected routes)
+- Passwords: bcrypt only; never log or return `passwordHash`
+- Do not expose hard delete via API; soft-delete/archive only
+
+## Input & data access
+
+- Validate all bodies with DTOs + `class-validator` before service/DB layer
+- TypeORM parameterized queries only; never interpolate user input into SQL
+- Clients cannot set `status` directly — server recalculates from dates
+- Integer IDs are guessable: do not rely on obscurity; validate resource access on `:id` routes
+
+## Expiry job
+
+- Service account via env; login once per run; no permanent API tokens
+- `bulk-status` accepts only `active` | `expiring` | `expired`
+- Production: HTTPS only for API calls
+
+## Transport
+
+- CORS: explicit allowlist from env, not `*` in production
+
+When planning features, flag auth, validation, and audit-trail impact before coding.
