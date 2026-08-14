@@ -10,6 +10,7 @@ Full detail: `docs/security.md`.
 ## Secrets & config
 
 - Never commit `.env`, credentials, real employee data, AWS account IDs, or ARNs
+- **Do not edit** `.env`, `.env.local`, `.env.production`, or service-specific env files (`backend/.env`, `expiry-job/.env`, `frontend/.env`) — the user owns those. **May edit** `.env.example` files (root and per-service templates) when adding or documenting new config keys.
 - No hardcoded secrets or fallback JWT secrets; read from env
 - AWS resource names via env only (`EVENTBRIDGE_BUS_NAME`, `SQS_QUEUE_NAME`, etc.)
 
