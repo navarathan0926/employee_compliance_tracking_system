@@ -75,7 +75,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 - `changedRecords`: only records whose status actually changed in this run (empty array if nothing changed).
 - Publish **once per successful run**, after all PATCH batches complete.
 
-**Alert idempotency (consumer-side):** Record-level idempotency is handled by `lastEvaluatedStatus` and skip-if-unchanged logic in the API. For duplicate alerts within the same evaluation window, the consumer deduplicates using `runId` (ignore a second message with the same `runId`) or by tracking `(evaluationDate, recordId, newStatus)` pairs already notified.
+**Alert idempotency (consumer-side):** Record-level idempotency is handled by skip-if-unchanged logic in the API and expiry job (computed status vs current `status`). For duplicate alerts within the same evaluation window, the consumer deduplicates using `runId` (ignore a second message with the same `runId`) or by tracking `(evaluationDate, recordId, newStatus)` pairs already notified.
 
 **Reasoning:** Decouples "detecting expiries" from "reacting to them." The job's responsibility is detection and status update; anything that needs to react can consume from the queue independently.
 
@@ -107,7 +107,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 - **Write phase:** split status updates into PATCH batches (e.g. up to 200 records per request; configurable constant in the Python job) rather than a single unbounded request.
 - **Evaluation date:** capture `today` as the current **Sri Lanka calendar date** (`Asia/Colombo`) once at the start of the run and use it for every record evaluation (see Decision #17).
 - Each external call (GET, PATCH, EventBridge publish) is wrapped with **exponential backoff retry** (e.g. 1s, 2s, 4s) and a **request timeout**. Failed PATCH batches are logged and skipped rather than aborting the entire job; the next scheduled run repairs missed records.
-- **Idempotency (record level):** before sending a PATCH batch, skip records where `lastEvaluatedStatus` already matches the computed `newStatus`. The API also skips records whose current `status` already matches `newStatus`. Reruns and retried requests do not double-update.
+- **Idempotency (record level):** before sending a PATCH batch, skip records where the computed `newStatus` already matches the record's current `status`. The API also skips records whose current `status` already matches `newStatus`. Reruns and retried requests do not double-update.
 - **Idempotency (event level):** one summary event per run with a unique `runId`; consumer deduplicates by `runId` or `(evaluationDate, recordId, newStatus)` (see Decision #7).
 
 **Reasoning:** Bulk PATCH reduces API round trips. Snapshot-first fetch avoids the offset-pagination skip bug that occurs when status updates happen between paginated GETs. Exponential backoff handles transient network/timeout issues without a separate background worker. Idempotency makes reruns and partial failures safe.
@@ -211,7 +211,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 
 ## 21. Status Recalculation on Date Changes
 
-**Decision:** Whenever `issuedDate` or `expiryDate` is created or corrected via the CRUD API (`POST /compliance-records` or `PATCH /compliance-records/:id`), the API recalculates `status` in the **same database transaction** using the shared rule (Decision #17). `lastEvaluatedStatus` is updated to match. Clients cannot set `status` directly.
+**Decision:** Whenever `issuedDate` or `expiryDate` is created or corrected via the CRUD API (`POST /compliance-records` or `PATCH /compliance-records/:id`), the API recalculates `status` in the **same database transaction** using the shared rule (Decision #17). Clients cannot set `status` directly.
 
 **Status rule:**
 ```

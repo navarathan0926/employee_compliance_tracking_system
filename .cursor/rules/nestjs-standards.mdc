@@ -38,7 +38,7 @@ Do not mix entity, HTTP, and business rules in one file.
 
 - `expiryDate` > `issuedDate`
 - Renewal: new record + old → `renewed`; use `POST .../renew`, not PATCH for renewals
-- PATCH date changes → recalculate `status` + `lastEvaluatedStatus` in same transaction
+- PATCH date changes → recalculate `status` in same transaction
 - Employee delete → cascade archive compliance records in one transaction
 - `bulk-status`: idempotent; skip `renewed`/`archived`/missing IDs
 

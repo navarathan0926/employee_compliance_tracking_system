@@ -76,7 +76,6 @@ export class ComplianceRecordService {
     const record = this.complianceRecordsRepository.create({
       ...dto,
       status,
-      lastEvaluatedStatus: status,
     });
 
     return this.complianceRecordsRepository.save(record);
@@ -170,7 +169,6 @@ export class ComplianceRecordService {
 
       const status = this.computeStatus(expiryDate);
       record.status = status;
-      record.lastEvaluatedStatus = status;
     }
 
     if (dto.notes !== undefined) {
@@ -214,7 +212,6 @@ export class ComplianceRecordService {
           notes: dto.notes ?? null,
           renewedFromId: oldRecord.id,
           status,
-          lastEvaluatedStatus: status,
         });
 
         const savedNewRecord = await manager.save(newRecord);
@@ -252,11 +249,11 @@ export class ComplianceRecordService {
         continue;
       }
 
-      record.lastEvaluatedStatus = update.newStatus as EvaluableComplianceStatus;
-      if (record.status !== update.newStatus) {
-        record.status = update.newStatus;
+      if (record.status === update.newStatus) {
+        continue;
       }
 
+      record.status = update.newStatus as EvaluableComplianceStatus;
       toSave.push(record);
     }
 

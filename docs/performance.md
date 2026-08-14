@@ -74,7 +74,7 @@ See Architecture Decisions #11, #18, and #19 for the full rationale.
 - **Evaluate:** compare every record in the snapshot against a single Sri Lanka calendar date (`Asia/Colombo`, captured once at run start).
 - **Update (PATCH):** submit status changes in batches (e.g. up to 200 records per `PATCH /compliance-records/bulk-status` call; configurable constant in the Python job). `newStatus` may be `active`, `expiring`, or `expired`. Only records whose computed status differs from current status are included.
 - The NestJS `bulk-status` endpoint executes a single bulk update per batch (TypeORM `save` on an array, or a raw `UPDATE` with an `IN` clause), not individual updates per record. Archived or missing IDs are skipped without failing the batch.
-- **Idempotency:** skip records whose `lastEvaluatedStatus` already matches `newStatus` before sending a PATCH batch; reduces batch size on rerun.
+- **Idempotency:** skip records whose computed `newStatus` already matches current `status` before sending a PATCH batch; reduces batch size on rerun.
 - **Retries:** each GET, PATCH, and EventBridge publish uses exponential backoff (e.g. 1s, 2s, 4s) with a request timeout. Failed PATCH batches are logged and skipped; the next scheduled run repairs missed records.
 - **Auth:** login once per run via service account JWT; re-login and retry on `401` only.
 
@@ -97,7 +97,7 @@ If multiple Elastic Beanstalk instances run simultaneously, the total active con
 ## 7. API Response Size
 
 - Paginated responses cap the result set at 200 records. Large payloads are chunked across pages by the client.
-- TypeORM `select` should be used on list endpoints to return only the columns the frontend actually needs, not the full entity (e.g. omit `passwordHash` from any accidental join, omit `lastEvaluatedStatus` from public-facing endpoints where not needed).
+- TypeORM `select` should be used on list endpoints to return only the columns the frontend actually needs, not the full entity (e.g. omit `passwordHash` from any accidental join).
 
 ---
 

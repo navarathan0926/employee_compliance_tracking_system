@@ -22,7 +22,7 @@ Full detail: `docs/performance.md`.
 ## Expiry job
 
 - Snapshot-first: paginate all GETs, then PATCH in batches (max 200)
-- Skip unchanged records (`lastEvaluatedStatus` / matching status)
+- Skip unchanged records (computed status matches current `status`)
 - Exponential backoff + timeout on HTTP and EventBridge calls
 
 ## API & frontend

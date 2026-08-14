@@ -23,7 +23,7 @@ Use when reviewing `expiry-job/` changes.
 
 ## Idempotency & reliability
 
-- [ ] Skips when `lastEvaluatedStatus` already matches
+- [ ] Skips when computed status already matches current `status`
 - [ ] Retry/backoff + timeout on external calls
 - [ ] Failed batches logged; job does not crash entire run
 - [ ] Login once; re-login on 401 for that request only

@@ -53,7 +53,7 @@ The following items were previously listed as open decisions. They are now resol
 
 | Expiry job schedule | Daily at 01:00 `Asia/Colombo` via EventBridge Scheduler. See Decision #20. |
 
-| Expiry job retries / idempotency | Exponential backoff on GET/PATCH/EventBridge; failed PATCH batches logged and skipped. Skip when `lastEvaluatedStatus` matches. See Decision #11. |
+| Expiry job retries / idempotency | Exponential backoff on GET/PATCH/EventBridge; failed PATCH batches logged and skipped. Skip when computed status matches current `status`. See Decision #11. |
 
 
 
@@ -79,7 +79,7 @@ The following items were previously listed as open decisions. They are now resol
 
 ## Idempotency reminder
 
-- **Record level:** `lastEvaluatedStatus` on `ComplianceRecord` ensures reruns skip already-evaluated records.
+- **Record level:** compare computed status to current `status`; skip PATCH when they match.
 
 - **Event level:** Each run publishes one message with a unique `runId`. Consumers ignore duplicate `runId` values to prevent duplicate alerts within the same evaluation window.
 

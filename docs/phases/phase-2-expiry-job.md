@@ -29,7 +29,7 @@
 - [ ] Snapshot GET: `?status=active,expiring&limit=200` until all pages loaded
 - [ ] Evaluate with `ZoneInfo("Asia/Colombo").date()` + buffer days
 - [ ] PATCH batches only where computed status ≠ current
-- [ ] Skip when `lastEvaluatedStatus` matches (client-side filter)
+- [ ] Skip when computed status matches current `status` (client-side filter)
 
 ### 2.3 Reliability
 

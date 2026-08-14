@@ -90,7 +90,6 @@ describe('ComplianceRecordService', () => {
       issuedDate: '2026-01-01',
       expiryDate: '2026-01-15',
       status: ComplianceStatus.EXPIRED,
-      lastEvaluatedStatus: ComplianceStatus.EXPIRED,
       notes: null,
       renewedFromId: null,
       deletedAt: null,
@@ -101,39 +100,47 @@ describe('ComplianceRecordService', () => {
     const updated = await service.update(1, { expiryDate: '2027-01-01' });
 
     expect(updated.status).toBe(ComplianceStatus.ACTIVE);
-    expect(updated.lastEvaluatedStatus).toBe(ComplianceStatus.ACTIVE);
   });
 
-  it('skips bulk-status updates for renewed records but updates lastEvaluatedStatus for active ones', async () => {
+  it('skips bulk-status updates for renewed records and unchanged statuses', async () => {
     const activeRecord = {
       id: 1,
       employeeId: 1,
       status: ComplianceStatus.ACTIVE,
-      lastEvaluatedStatus: ComplianceStatus.ACTIVE,
       deletedAt: null,
     } as ComplianceRecord;
     const renewedRecord = {
       id: 2,
       employeeId: 1,
       status: ComplianceStatus.RENEWED,
-      lastEvaluatedStatus: ComplianceStatus.EXPIRED,
       deletedAt: new Date(),
     } as ComplianceRecord;
+    const expiringRecord = {
+      id: 3,
+      employeeId: 1,
+      status: ComplianceStatus.EXPIRING,
+      deletedAt: null,
+    } as ComplianceRecord;
 
-    complianceRepo.find.mockResolvedValue([activeRecord, renewedRecord]);
+    complianceRepo.find.mockResolvedValue([
+      activeRecord,
+      renewedRecord,
+      expiringRecord,
+    ]);
 
     const result = await service.bulkStatusUpdate({
       updates: [
         { id: 1, newStatus: ComplianceStatus.ACTIVE },
         { id: 2, newStatus: ComplianceStatus.EXPIRING },
+        { id: 3, newStatus: ComplianceStatus.EXPIRED },
       ],
     });
 
     expect(result.processed).toBe(1);
     expect(complianceRepo.save).toHaveBeenCalledWith([
       expect.objectContaining({
-        id: 1,
-        lastEvaluatedStatus: ComplianceStatus.ACTIVE,
+        id: 3,
+        status: ComplianceStatus.EXPIRED,
       }),
     ]);
   });

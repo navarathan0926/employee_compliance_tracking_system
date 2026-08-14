@@ -10,10 +10,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { ComplianceType } from '../../common/enums/compliance-type.enum';
-import {
-  ComplianceStatus,
-  EvaluableComplianceStatus,
-} from '../../common/enums/compliance-status.enum';
+import { ComplianceStatus } from '../../common/enums/compliance-status.enum';
 import { Employee } from '../employees/employee.entity';
 
 @Entity('compliance_records')
@@ -55,13 +52,6 @@ export class ComplianceRecord {
 
   @Column({ type: 'text', nullable: true })
   notes!: string | null;
-
-  @Column({
-    type: 'enum',
-    enum: ComplianceStatus,
-    nullable: true,
-  })
-  lastEvaluatedStatus!: EvaluableComplianceStatus | null;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt!: Date;

@@ -92,7 +92,7 @@
 
 - [x] CRUD, filters, pagination (max 200), multi-status `?status=active,expiring`
 
-- [x] POST/PATCH recalculate `status` + `lastEvaluatedStatus` on date changes
+- [x] POST/PATCH recalculate `status` on date changes
 
 - [x] `POST /compliance-records/:id/renew` (old → `renewed`, new + `renewedFromId`)
 

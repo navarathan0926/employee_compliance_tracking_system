@@ -238,7 +238,7 @@ Correct a record's fields (e.g. fix a typo in `notes`, correct an `issuedDate` o
 
 
 
-When `issuedDate` or `expiryDate` is updated, the API **recalculates `status`** in the same transaction using the shared status rule above. This heals records that were `expiring` or `expired` after a date correction — the expiry job does not need to fetch `expired` records for this case. `lastEvaluatedStatus` is also updated to match the new status.
+When `issuedDate` or `expiryDate` is updated, the API **recalculates `status`** in the same transaction using the shared status rule above. This heals records that were `expiring` or `expired` after a date correction — the expiry job does not need to fetch `expired` records for this case.
 
 
 
@@ -312,7 +312,7 @@ Body:
 
 
 
-Idempotent: if a record's current `status` already matches `newStatus`, it is skipped — no state change. The `lastEvaluatedStatus` field is updated for every processed record (whether changed or skipped) to record what the job evaluated.
+Idempotent: if a record's current `status` already matches `newStatus`, it is skipped — no state change.
 
 
 

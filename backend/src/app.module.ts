@@ -10,6 +10,7 @@ import { ComplianceRecord } from './compliance/compliance-records/compliance-rec
 import { Employee } from './compliance/employees/employee.entity';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { InitialSchema1730000000000 } from './database/migrations/1730000000000-InitialSchema';
+import { RemoveLastEvaluatedStatus1730000000001 } from './database/migrations/1730000000001-RemoveLastEvaluatedStatus';
 
 @Module({
   imports: [
@@ -35,7 +36,10 @@ import { InitialSchema1730000000000 } from './database/migrations/1730000000000-
           database: configService.get<string>('DATABASE_NAME'),
           timezone: 'Z',
           entities: [User, Employee, ComplianceRecord],
-          migrations: [InitialSchema1730000000000],
+          migrations: [
+            InitialSchema1730000000000,
+            RemoveLastEvaluatedStatus1730000000001,
+          ],
           migrationsRun: false,
           synchronize: false,
         };
