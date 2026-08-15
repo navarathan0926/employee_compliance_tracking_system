@@ -222,3 +222,15 @@ else                                           → active
 ```
 
 **Reasoning:** Without this, a corrected `expiryDate` could leave a record stuck in `expired` or `expiring`. Because the expiry job only fetches `active`/`expiring` records, `expired` records healed by date correction must be fixed by the API — not the job. This keeps the job simple while ensuring data consistency on every write path.
+
+## 22. ComplianceRecord Indexing and Write Trade-offs
+
+**Decision:**
+- Keep single-column indexes on `ComplianceRecord` for hot-path filters: `employeeId`, `status`, `expiryDate`, `deletedAt`.
+- Keep composite index `(status, expiryDate, deletedAt)` for combined filters used by the expiry job fetch and dashboard expiring queries.
+- Accept index maintenance cost on writes (including daily bulk `status` updates from the expiry job). Do **not** remove `status` indexing to optimize PATCH — read paths (paginated list, live metrics, job snapshot) depend on these indexes at scale.
+- List and dashboard queries use explicit column `select` and pagination (`limit`/`offset`, max 200) rather than unbounded `SELECT *`.
+- `PATCH /compliance-records/bulk-status` accepts at most 200 updates per request and applies grouped `UPDATE` statements (one per distinct `newStatus`), not one ORM `save()` per row.
+- TypeORM MySQL connection pool is configured explicitly (`connectionLimit: 10`, connect timeout 10s) — see `docs/performance.md`.
+
+**Reasoning:** This workload is read-heavy (dashboard, expiry job snapshot, filtered lists) with comparatively low write volume (CRUD + one daily bulk status pass). Index write overhead on `status` changes is small relative to full-table scans without indexes. The composite index matches `WHERE status IN (...) AND deletedAt IS NULL` with optional `expiryDate` range; the leading `status` column also supports status-only filters. Redundant single-column `status` index vs composite is acceptable at current scale; dropping it is a future micro-optimization only if profiling shows measurable PATCH cost.

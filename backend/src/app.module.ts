@@ -11,6 +11,7 @@ import { Employee } from './compliance/employees/employee.entity';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { InitialSchema1730000000000 } from './database/migrations/1730000000000-InitialSchema';
 import { RemoveLastEvaluatedStatus1730000000001 } from './database/migrations/1730000000001-RemoveLastEvaluatedStatus';
+import { buildTypeOrmExtra } from './database/typeorm-options';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { RemoveLastEvaluatedStatus1730000000001 } from './database/migrations/17
           ],
           migrationsRun: false,
           synchronize: false,
+          extra: buildTypeOrmExtra(configService),
         };
       },
     }),

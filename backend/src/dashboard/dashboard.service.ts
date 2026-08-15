@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ComplianceConfigService } from '../common/compliance-config.service';
+import { resolvePagination } from '../common/dto/pagination-query.dto';
 import { addDaysToDateString, getTodayInTimezone } from '../common/date.util';
 import { ComplianceStatus } from '../common/enums/compliance-status.enum';
 import { ComplianceRecord } from '../compliance/compliance-records/compliance-record.entity';
@@ -143,6 +144,7 @@ export class DashboardService {
   }
 
   async getExpiring(query: ExpiringQueryDto): Promise<ExpiringResponse> {
+    const { limit, offset } = resolvePagination(query);
     let from: string;
     let to: string;
 
@@ -161,7 +163,17 @@ export class DashboardService {
 
     const qb = this.complianceRecordsRepository
       .createQueryBuilder('record')
-      .innerJoinAndSelect('record.employee', 'employee')
+      .innerJoin('record.employee', 'employee')
+      .select([
+        'record.id',
+        'record.employeeId',
+        'record.type',
+        'record.issuedDate',
+        'record.expiryDate',
+        'record.status',
+        'record.notes',
+      ])
+      .addSelect(['employee.name', 'employee.department'])
       .where('record.deletedAt IS NULL')
       .andWhere('record.status IN (:...statuses)', {
         statuses: [
@@ -172,7 +184,10 @@ export class DashboardService {
       })
       .andWhere('record.expiryDate >= :from', { from })
       .andWhere('record.expiryDate <= :to', { to })
-      .orderBy('record.expiryDate', 'ASC');
+      .orderBy('record.expiryDate', 'ASC')
+      .addOrderBy('record.id', 'ASC')
+      .skip(offset)
+      .take(limit);
 
     const [records, total] = await qb.getManyAndCount();
 
@@ -188,6 +203,6 @@ export class DashboardService {
       notes: record.notes,
     }));
 
-    return { data, total, from, to };
+    return { data, total, limit, offset, from, to };
   }
 }

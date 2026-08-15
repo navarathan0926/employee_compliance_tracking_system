@@ -13,6 +13,7 @@ describe('ComplianceRecordService', () => {
   let service: ComplianceRecordService;
   let complianceRepo: jest.Mocked<Repository<ComplianceRecord>>;
   let employeeRepo: jest.Mocked<Repository<Employee>>;
+  let bulkUpdateExecute: jest.Mock;
 
   const complianceConfig = {
     bufferDays: 30,
@@ -20,13 +21,25 @@ describe('ComplianceRecordService', () => {
   };
 
   beforeEach(async () => {
+    bulkUpdateExecute = jest.fn().mockResolvedValue({ affected: 1 });
+
+    const bulkUpdateQueryBuilder = {
+      update: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      execute: bulkUpdateExecute,
+    };
+
     complianceRepo = {
       create: jest.fn((value) => value),
       save: jest.fn(async (value) => value),
       findOne: jest.fn(),
       find: jest.fn(),
       softDelete: jest.fn(),
-      createQueryBuilder: jest.fn(),
+      createQueryBuilder: jest.fn((alias?: string) =>
+        alias ? ({} as never) : bulkUpdateQueryBuilder,
+      ),
       manager: {
         transaction: jest.fn(async (callback) =>
           callback({
@@ -137,12 +150,8 @@ describe('ComplianceRecordService', () => {
     });
 
     expect(result.processed).toBe(1);
-    expect(complianceRepo.save).toHaveBeenCalledWith([
-      expect.objectContaining({
-        id: 3,
-        status: ComplianceStatus.EXPIRED,
-      }),
-    ]);
+    expect(bulkUpdateExecute).toHaveBeenCalledTimes(1);
+    expect(complianceRepo.save).not.toHaveBeenCalled();
   });
 
   it('throws when renewing an archived record', async () => {

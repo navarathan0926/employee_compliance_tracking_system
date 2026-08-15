@@ -5,6 +5,7 @@ import { Employee } from '../compliance/employees/employee.entity';
 import { ComplianceRecord } from '../compliance/compliance-records/compliance-record.entity';
 import { InitialSchema1730000000000 } from './migrations/1730000000000-InitialSchema';
 import { RemoveLastEvaluatedStatus1730000000001 } from './migrations/1730000000001-RemoveLastEvaluatedStatus';
+import { buildTypeOrmExtra } from './typeorm-options';
 
 config({ path: '.env' });
 
@@ -19,4 +20,5 @@ export default new DataSource({
   entities: [User, Employee, ComplianceRecord],
   migrations: [InitialSchema1730000000000, RemoveLastEvaluatedStatus1730000000001],
   migrationsTableName: 'typeorm_migrations',
+  extra: buildTypeOrmExtra(),
 });

@@ -19,7 +19,11 @@ describe('DashboardService', () => {
     addGroupBy: jest.Mock;
     innerJoin: jest.Mock;
     innerJoinAndSelect: jest.Mock;
+    addSelect: jest.Mock;
     orderBy: jest.Mock;
+    addOrderBy: jest.Mock;
+    skip: jest.Mock;
+    take: jest.Mock;
     getRawMany: jest.Mock;
     getManyAndCount: jest.Mock;
   };
@@ -35,7 +39,11 @@ describe('DashboardService', () => {
       addGroupBy: jest.fn().mockReturnThis(),
       innerJoin: jest.fn().mockReturnThis(),
       innerJoinAndSelect: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
       getRawMany: jest.fn(),
       getManyAndCount: jest.fn(),
     };
@@ -116,5 +124,36 @@ describe('DashboardService', () => {
     expect(result.byType).toEqual([
       { type: ComplianceType.VISA, active: 1, expiring: 0, expired: 0 },
     ]);
+  });
+
+  it('paginates expiring records and returns total count', async () => {
+    baseQueryBuilder.getManyAndCount.mockResolvedValue([
+      [
+        {
+          id: 1,
+          employeeId: 10,
+          type: ComplianceType.VISA,
+          issuedDate: '2024-01-15',
+          expiryDate: '2026-09-01',
+          status: ComplianceStatus.EXPIRING,
+          notes: null,
+          employee: { name: 'Jane Doe', department: 'Engineering' },
+        },
+      ],
+      15,
+    ]);
+
+    const result = await service.getExpiring({ limit: 50, offset: 0 });
+
+    expect(result.total).toBe(15);
+    expect(result.limit).toBe(50);
+    expect(result.offset).toBe(0);
+    expect(result.data).toHaveLength(1);
+    expect(baseQueryBuilder.skip).toHaveBeenCalledWith(0);
+    expect(baseQueryBuilder.take).toHaveBeenCalledWith(50);
+    expect(baseQueryBuilder.innerJoin).toHaveBeenCalledWith(
+      'record.employee',
+      'employee',
+    );
   });
 });

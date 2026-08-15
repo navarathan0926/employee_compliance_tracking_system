@@ -4,11 +4,13 @@ import {
   IsDateString,
   IsInt,
   IsOptional,
+  Max,
   Min,
   ValidateIf,
 } from 'class-validator';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
-export class ExpiringQueryDto {
+export class ExpiringQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({
     default: 30,
     minimum: 1,
@@ -19,6 +21,7 @@ export class ExpiringQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(365)
   days?: number = 30;
 
   @ApiPropertyOptional({
@@ -55,6 +58,8 @@ export interface ExpiringRecordRow {
 export interface ExpiringResponse {
   data: ExpiringRecordRow[];
   total: number;
+  limit: number;
+  offset: number;
   from: string;
   to: string;
 }

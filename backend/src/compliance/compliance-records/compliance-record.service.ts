@@ -90,7 +90,18 @@ export class ComplianceRecordService {
 
     const qb = this.complianceRecordsRepository
       .createQueryBuilder('record')
-      .leftJoinAndSelect('record.employee', 'employee');
+      .select([
+        'record.id',
+        'record.employeeId',
+        'record.type',
+        'record.issuedDate',
+        'record.expiryDate',
+        'record.status',
+        'record.renewedFromId',
+        'record.notes',
+        'record.createdAt',
+        'record.updatedAt',
+      ]);
 
     if (includeDeleted) {
       qb.withDeleted();
@@ -230,10 +241,11 @@ export class ComplianceRecordService {
     const records = await this.complianceRecordsRepository.find({
       where: { id: In(ids) },
       withDeleted: true,
+      select: ['id', 'status', 'deletedAt'],
     });
     const recordMap = new Map(records.map((record) => [record.id, record]));
 
-    const toSave: ComplianceRecord[] = [];
+    const updatesByStatus = new Map<EvaluableComplianceStatus, number[]>();
 
     for (const update of dto.updates) {
       const record = recordMap.get(update.id);
@@ -253,15 +265,34 @@ export class ComplianceRecordService {
         continue;
       }
 
-      record.status = update.newStatus as EvaluableComplianceStatus;
-      toSave.push(record);
+      const newStatus = update.newStatus as EvaluableComplianceStatus;
+      const idsForStatus = updatesByStatus.get(newStatus) ?? [];
+      idsForStatus.push(update.id);
+      updatesByStatus.set(newStatus, idsForStatus);
     }
 
-    if (toSave.length > 0) {
-      await this.complianceRecordsRepository.save(toSave);
+    let processed = 0;
+
+    for (const [newStatus, recordIds] of updatesByStatus.entries()) {
+      const result = await this.complianceRecordsRepository
+        .createQueryBuilder()
+        .update(ComplianceRecord)
+        .set({ status: newStatus })
+        .where('id IN (:...recordIds)', { recordIds })
+        .andWhere('deletedAt IS NULL')
+        .andWhere('status NOT IN (:...terminalStatuses)', {
+          terminalStatuses: [
+            ComplianceStatus.RENEWED,
+            ComplianceStatus.ARCHIVED,
+          ],
+        })
+        .andWhere('status <> :newStatus', { newStatus })
+        .execute();
+
+      processed += result.affected ?? 0;
     }
 
-    return { processed: toSave.length };
+    return { processed };
   }
 
   async archive(id: number): Promise<void> {
