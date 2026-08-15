@@ -74,6 +74,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 - `evaluationDate`: the Sri Lanka calendar date used for all expiry comparisons in that run.
 - `changedRecords`: only records whose status actually changed in this run (empty array if nothing changed).
 - Publish **once per successful run**, after all PATCH batches complete.
+- **Publish failure after PATCH:** the job writes the payload to a pending file (`PENDING_EVENT_PATH`, or a temp-dir default) and exits non-zero. The next run republishes that payload with the **same `runId`** before starting a new evaluation, then deletes the file. Consumers already ignore a duplicate `runId`.
 
 **Alert idempotency (consumer-side):** Record-level idempotency is handled by skip-if-unchanged logic in the API and expiry job (computed status vs current `status`). For duplicate alerts within the same evaluation window, the consumer deduplicates using `runId` (ignore a second message with the same `runId`) or by tracking `(evaluationDate, recordId, newStatus)` pairs already notified.
 
