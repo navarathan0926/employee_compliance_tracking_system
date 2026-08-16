@@ -70,8 +70,12 @@ def load_config(env_file: str | None = None) -> Config:
     if env_file:
         load_dotenv(env_file)
     else:
-        project_env = Path(__file__).resolve().parent.parent / ".env"
-        load_dotenv(project_env)
+        project_root = Path(__file__).resolve().parent.parent
+        env_name = os.getenv("APP_ENV", "").strip().lower()
+        if env_name == "production":
+            load_dotenv(project_root / ".env.production")
+        else:
+            load_dotenv(project_root / ".env")
 
     return Config(
         api_base_url=require_secure_api_base_url(_require("API_BASE_URL").rstrip("/")),

@@ -246,3 +246,15 @@ else                                           → active
 - Reliability is already handled at the correct layer: the Python job retries on network/timeout errors; the Nest endpoint is idempotent (SQL `WHERE status <> :newStatus` guard); failed batches are skipped and repaired on the next scheduled run.
 
 **When to revisit:** If record volume grows such that a single batch cannot complete within the API's HTTP timeout, or if bulk status updates are triggered by user actions rather than a once-daily scheduled job, introduce background processing at that point.
+
+## 24. Production Deployment: EB Single Instance + CloudFront (Free Tier)
+
+**Decision:** For this demo/assessment deployment in `ap-southeast-1`, the NestJS API runs on **Elastic Beanstalk single instance** (no Application Load Balancer) with **CloudFront** providing HTTPS in front of the EB origin. The SvelteKit frontend is hosted on **Amplify** (branch `main`). The Python expiry job runs on **Lambda** with **EventBridge Scheduler**, calling the API over public HTTPS (no API Gateway, no VPC for Lambda).
+
+**Free Tier rationale:** A load-balanced EB environment creates an ALB (~$16+/month, not covered by Free Tier). Single-instance EB uses a Free Tier–eligible `t3.micro` EC2 instance. CloudFront and Amplify have generous free tiers suitable for demo traffic.
+
+**Production recommendation:** For a real production workload, use **load-balanced EB + ALB** for high availability, health-checked multi-instance deployments, and zero-downtime rolling updates. Keep CloudFront (or equivalent CDN) for TLS termination and edge caching where appropriate.
+
+**Rate limiting:** Application-layer throttling via `@nestjs/throttler` in NestJS (not API Gateway or WAF). Login endpoint has a stricter per-IP limit than the global default.
+
+**Env var strategy:** `.env.production` files in each service are local checklists; **AWS (EB, Lambda, Amplify) is the runtime source of truth**. GitHub Actions holds deploy credentials only (`AWS_ROLE_ARN`, resource names).
