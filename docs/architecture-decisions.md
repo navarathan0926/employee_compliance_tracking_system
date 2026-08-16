@@ -234,3 +234,15 @@ else                                           → active
 - TypeORM MySQL connection pool is configured explicitly (`connectionLimit: 10`, connect timeout 10s) — see `docs/performance.md`.
 
 **Reasoning:** This workload is read-heavy (dashboard, expiry job snapshot, filtered lists) with comparatively low write volume (CRUD + one daily bulk status pass). Index write overhead on `status` changes is small relative to full-table scans without indexes. The composite index matches `WHERE status IN (...) AND deletedAt IS NULL` with optional `expiryDate` range; the leading `status` column also supports status-only filters. Redundant single-column `status` index vs composite is acceptable at current scale; dropping it is a future micro-optimization only if profiling shows measurable PATCH cost.
+
+## 23. No Background Job Queue for Bulk Status PATCH
+
+**Decision:** No background processing queue (e.g. BullMQ, Celery, SQS-driven worker) is used inside the NestJS API to handle `PATCH /compliance-records/bulk-status` requests. The endpoint processes updates synchronously within the HTTP request.
+
+**Reasoning:**
+- `bulk-status` executes at most **3 SQL UPDATE statements** per request — one per distinct `newStatus` value (`active`, `expiring`, `expired`). Each UPDATE covers all matching IDs in a single `WHERE id IN (...)` query, not one row at a time. At the enforced cap of 200 updates per request, this completes in milliseconds.
+- The only caller is the Python expiry job — not an interactive user. The job already handles retries with exponential backoff and logs failed batches without aborting the run. There is no user response-time concern.
+- A queue (BullMQ or equivalent) would add a worker process, job-state table or Redis instance, failure/retry tracking, and dead-letter handling — significant operational overhead with no benefit at this call volume and batch size.
+- Reliability is already handled at the correct layer: the Python job retries on network/timeout errors; the Nest endpoint is idempotent (SQL `WHERE status <> :newStatus` guard); failed batches are skipped and repaired on the next scheduled run.
+
+**When to revisit:** If record volume grows such that a single batch cannot complete within the API's HTTP timeout, or if bulk status updates are triggered by user actions rather than a once-daily scheduled job, introduce background processing at that point.
