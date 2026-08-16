@@ -20,7 +20,7 @@ alwaysApply: true
 
 ## Idempotency & reliability
 
-- Skip when `lastEvaluatedStatus` matches computed status
+- Skip when computed status matches current `status`
 - PATCH only when computed status ≠ current status (`active` | `expiring` | `expired`)
 - Exponential backoff + timeout on GET, PATCH, EventBridge
 - Failed PATCH batches: log and continue; unique `runId` per run in event payload

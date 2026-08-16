@@ -30,8 +30,10 @@ Also consult: `docs/db-schema.md`, `docs/api-doc.md`, `docs/process-flow.md`, `d
 
 ## Env files
 
-- `.env.example` at repo root is the catalog
-- At implementation: `backend/.env`, `expiry-job/.env`, `frontend/.env` — each service loads only its vars
+- `.env.example` at repo root is the full catalog; per-service templates: `backend/.env.example`, etc.
+- **User-owned (never modify in agent edits):** `.env`, `.env.production`, `backend/.env`, `expiry-job/.env`, `frontend/.env`
+- **Agent may update:** `.env.example`, `backend/.env.example`, and other `*.env.example` templates when adding config keys
+- At runtime each service loads only its own `.env`
 
 ## Scope discipline
 

@@ -73,8 +73,9 @@ See Architecture Decisions #11, #18, and #19 for the full rationale.
 - **Fetch (GET):** paginate with `limit=200` (API max; configurable constant in the Python job) until all non-archived `active`/`expiring` records are loaded into an in-memory snapshot. **No PATCH between GET pages** — snapshot-first avoids offset-pagination skips when statuses change mid-fetch.
 - **Evaluate:** compare every record in the snapshot against a single Sri Lanka calendar date (`Asia/Colombo`, captured once at run start).
 - **Update (PATCH):** submit status changes in batches (e.g. up to 200 records per `PATCH /compliance-records/bulk-status` call; configurable constant in the Python job). `newStatus` may be `active`, `expiring`, or `expired`. Only records whose computed status differs from current status are included.
-- The NestJS `bulk-status` endpoint executes a single bulk update per batch (TypeORM `save` on an array, or a raw `UPDATE` with an `IN` clause), not individual updates per record. Archived or missing IDs are skipped without failing the batch.
-- **Idempotency:** skip records whose `lastEvaluatedStatus` already matches `newStatus` before sending a PATCH batch; reduces batch size on rerun.
+- The NestJS `bulk-status` endpoint accepts at most 200 updates per request and executes grouped `UPDATE` statements (one per distinct `newStatus` with `WHERE id IN (...)` and skip guards), not one ORM `save()` per row. Archived or missing IDs are skipped without failing the batch.
+- `GET /dashboard/expiring` is paginated like other list endpoints (`limit` default 50, max 200; `offset` default 0). `getManyAndCount()` returns the page plus `total` matching rows.
+- **Idempotency:** skip records whose computed `newStatus` already matches current `status` before sending a PATCH batch; reduces batch size on rerun.
 - **Retries:** each GET, PATCH, and EventBridge publish uses exponential backoff (e.g. 1s, 2s, 4s) with a request timeout. Failed PATCH batches are logged and skipped; the next scheduled run repairs missed records.
 - **Auth:** login once per run via service account JWT; re-login and retry on `401` only.
 
@@ -97,7 +98,7 @@ If multiple Elastic Beanstalk instances run simultaneously, the total active con
 ## 7. API Response Size
 
 - Paginated responses cap the result set at 200 records. Large payloads are chunked across pages by the client.
-- TypeORM `select` should be used on list endpoints to return only the columns the frontend actually needs, not the full entity (e.g. omit `passwordHash` from any accidental join, omit `lastEvaluatedStatus` from public-facing endpoints where not needed).
+- TypeORM `select` should be used on list endpoints to return only the columns the frontend actually needs, not the full entity (e.g. omit `passwordHash` from any accidental join).
 
 ---
 

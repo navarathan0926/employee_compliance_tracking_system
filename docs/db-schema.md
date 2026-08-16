@@ -38,7 +38,6 @@ MySQL, accessed via TypeORM. All primary keys are auto-incrementing integers.
 | `status` | enum | `active`, `expiring`, `expired`, `renewed`, `archived` |
 | `renewedFromId` | int, nullable (FK → ComplianceRecord.id) | set on the **new** record created during renewal; points to the record it replaced |
 | `notes` | text, nullable | supporting documentation notes |
-| `lastEvaluatedStatus` | enum, nullable | `active`, `expiring`, or `expired` — tracks what the expiry job or API last evaluated; used for idempotency |
 | `createdAt` | timestamp (UTC) | set on insert |
 | `updatedAt` | timestamp (UTC) | updated on every write |
 | `deletedAt` | timestamp (UTC), nullable | soft-delete marker; non-null means archived |

@@ -222,6 +222,22 @@ Query params: `?employeeId=`, `?status=`, `?type=`, `?expiryFrom=`, `?expiryTo=`
 
 
 
+**Employee data on list:** Each item includes `employeeId` only — the list response does **not** embed a nested `employee` object (keeps the expiry job fetch lean).
+
+
+
+When employee name/department is needed:
+
+- **Single record:** `GET /compliance-records/:id` — includes nested `employee`.
+- **Dashboard expiring table:** `GET /dashboard/expiring` — returns `employeeName` and `department` per row.
+- **By employee:** `GET /employees/:id` or filter with `?employeeId=`.
+
+
+
+**Future (not implemented):** optional `?includeEmployee=true` on this list endpoint to join employee name/department in one paginated response. Use the endpoints above until then.
+
+
+
 ### `GET /compliance-records/:id`
 
 Retrieve a single record (including `renewed` and `archived`, to support audit views).
@@ -238,7 +254,7 @@ Correct a record's fields (e.g. fix a typo in `notes`, correct an `issuedDate` o
 
 
 
-When `issuedDate` or `expiryDate` is updated, the API **recalculates `status`** in the same transaction using the shared status rule above. This heals records that were `expiring` or `expired` after a date correction — the expiry job does not need to fetch `expired` records for this case. `lastEvaluatedStatus` is also updated to match the new status.
+When `issuedDate` or `expiryDate` is updated, the API **recalculates `status`** in the same transaction using the shared status rule above. This heals records that were `expiring` or `expired` after a date correction — the expiry job does not need to fetch `expired` records for this case.
 
 
 
@@ -286,7 +302,7 @@ Validation: same as `POST /compliance-records` (date ordering, required fields).
 
 ### `PATCH /compliance-records/bulk-status`
 
-Used by the Python expiry job. Bulk status update.
+Used by the Python expiry job. Bulk status update. At most **200** updates per request (same cap as list pagination).
 
 
 
@@ -312,7 +328,7 @@ Body:
 
 
 
-Idempotent: if a record's current `status` already matches `newStatus`, it is skipped — no state change. The `lastEvaluatedStatus` field is updated for every processed record (whether changed or skipped) to record what the job evaluated.
+Idempotent: if a record's current `status` already matches `newStatus`, it is skipped — no state change.
 
 
 
@@ -434,9 +450,17 @@ Returns non-archived records whose `expiryDate` falls within the requested windo
 
 Query params:
 
-- `?days=30` — preset window from today's Sri Lanka date (default 30 if omitted)
+- `?days=30` — preset window from today's Sri Lanka date (default 30 if omitted; max 365)
 
 - `?from=YYYY-MM-DD&to=YYYY-MM-DD` — custom range (both required when used; `days` is ignored)
+
+- `?limit=` — page size (default 50, max 200)
+
+- `?offset=` — records to skip (default 0)
+
+
+
+Uses `getManyAndCount()`: `data` is the current page; `total` is the count of all matching rows (for pagination UI).
 
 
 
@@ -473,6 +497,10 @@ Response:
   ],
 
   "total": 15,
+
+  "limit": 50,
+
+  "offset": 0,
 
   "from": "2026-08-14",
 

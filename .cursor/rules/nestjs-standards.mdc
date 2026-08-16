@@ -31,12 +31,14 @@ Do not mix entity, HTTP, and business rules in one file.
 - **Services:** business logic, transactions, status computation helper (Asia/Colombo date rule)
 - **Controllers:** thin — delegate to services; `@UseGuards(JwtAuthGuard)` on protected routes
 - **Auth:** `auth/` module with `LocalStrategy`, `JwtStrategy`, `AuthService`
+- **Database access:** use TypeORM APIs only — `Repository`, `QueryBuilder`, `createQueryBuilder` with bound parameters. Do **not** use `queryRunner.query()` / raw SQL strings in migrations or application code unless TypeORM cannot express the change (document why in the PR).
+- **Migrations:** use `queryRunner.createTable`, `dropTable`, `createForeignKey`, `Table`, `TableIndex`, `TableForeignKey` — not inline SQL `CREATE TABLE` / `DROP TABLE`.
 
 ## Domain rules (must match docs)
 
 - `expiryDate` > `issuedDate`
 - Renewal: new record + old → `renewed`; use `POST .../renew`, not PATCH for renewals
-- PATCH date changes → recalculate `status` + `lastEvaluatedStatus` in same transaction
+- PATCH date changes → recalculate `status` in same transaction
 - Employee delete → cascade archive compliance records in one transaction
 - `bulk-status`: idempotent; skip `renewed`/`archived`/missing IDs
 

@@ -74,8 +74,9 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 - `evaluationDate`: the Sri Lanka calendar date used for all expiry comparisons in that run.
 - `changedRecords`: only records whose status actually changed in this run (empty array if nothing changed).
 - Publish **once per successful run**, after all PATCH batches complete.
+- **Publish failure after PATCH:** the job writes the payload to a pending file (`PENDING_EVENT_PATH`, or a temp-dir default) and exits non-zero. The next run republishes that payload with the **same `runId`** before starting a new evaluation, then deletes the file. Consumers already ignore a duplicate `runId`.
 
-**Alert idempotency (consumer-side):** Record-level idempotency is handled by `lastEvaluatedStatus` and skip-if-unchanged logic in the API. For duplicate alerts within the same evaluation window, the consumer deduplicates using `runId` (ignore a second message with the same `runId`) or by tracking `(evaluationDate, recordId, newStatus)` pairs already notified.
+**Alert idempotency (consumer-side):** Record-level idempotency is handled by skip-if-unchanged logic in the API and expiry job (computed status vs current `status`). For duplicate alerts within the same evaluation window, the consumer deduplicates using `runId` (ignore a second message with the same `runId`) or by tracking `(evaluationDate, recordId, newStatus)` pairs already notified.
 
 **Reasoning:** Decouples "detecting expiries" from "reacting to them." The job's responsibility is detection and status update; anything that needs to react can consume from the queue independently.
 
@@ -107,7 +108,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 - **Write phase:** split status updates into PATCH batches (e.g. up to 200 records per request; configurable constant in the Python job) rather than a single unbounded request.
 - **Evaluation date:** capture `today` as the current **Sri Lanka calendar date** (`Asia/Colombo`) once at the start of the run and use it for every record evaluation (see Decision #17).
 - Each external call (GET, PATCH, EventBridge publish) is wrapped with **exponential backoff retry** (e.g. 1s, 2s, 4s) and a **request timeout**. Failed PATCH batches are logged and skipped rather than aborting the entire job; the next scheduled run repairs missed records.
-- **Idempotency (record level):** before sending a PATCH batch, skip records where `lastEvaluatedStatus` already matches the computed `newStatus`. The API also skips records whose current `status` already matches `newStatus`. Reruns and retried requests do not double-update.
+- **Idempotency (record level):** before sending a PATCH batch, skip records where the computed `newStatus` already matches the record's current `status`. The API also skips records whose current `status` already matches `newStatus`. Reruns and retried requests do not double-update.
 - **Idempotency (event level):** one summary event per run with a unique `runId`; consumer deduplicates by `runId` or `(evaluationDate, recordId, newStatus)` (see Decision #7).
 
 **Reasoning:** Bulk PATCH reduces API round trips. Snapshot-first fetch avoids the offset-pagination skip bug that occurs when status updates happen between paginated GETs. Exponential backoff handles transient network/timeout issues without a separate background worker. Idempotency makes reruns and partial failures safe.
@@ -211,7 +212,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 
 ## 21. Status Recalculation on Date Changes
 
-**Decision:** Whenever `issuedDate` or `expiryDate` is created or corrected via the CRUD API (`POST /compliance-records` or `PATCH /compliance-records/:id`), the API recalculates `status` in the **same database transaction** using the shared rule (Decision #17). `lastEvaluatedStatus` is updated to match. Clients cannot set `status` directly.
+**Decision:** Whenever `issuedDate` or `expiryDate` is created or corrected via the CRUD API (`POST /compliance-records` or `PATCH /compliance-records/:id`), the API recalculates `status` in the **same database transaction** using the shared rule (Decision #17). Clients cannot set `status` directly.
 
 **Status rule:**
 ```
@@ -221,3 +222,27 @@ else                                           → active
 ```
 
 **Reasoning:** Without this, a corrected `expiryDate` could leave a record stuck in `expired` or `expiring`. Because the expiry job only fetches `active`/`expiring` records, `expired` records healed by date correction must be fixed by the API — not the job. This keeps the job simple while ensuring data consistency on every write path.
+
+## 22. ComplianceRecord Indexing and Write Trade-offs
+
+**Decision:**
+- Keep single-column indexes on `ComplianceRecord` for hot-path filters: `employeeId`, `status`, `expiryDate`, `deletedAt`.
+- Keep composite index `(status, expiryDate, deletedAt)` for combined filters used by the expiry job fetch and dashboard expiring queries.
+- Accept index maintenance cost on writes (including daily bulk `status` updates from the expiry job). Do **not** remove `status` indexing to optimize PATCH — read paths (paginated list, live metrics, job snapshot) depend on these indexes at scale.
+- List and dashboard queries use explicit column `select` and pagination (`limit`/`offset`, max 200) rather than unbounded `SELECT *`.
+- `PATCH /compliance-records/bulk-status` accepts at most 200 updates per request and applies grouped `UPDATE` statements (one per distinct `newStatus`), not one ORM `save()` per row.
+- TypeORM MySQL connection pool is configured explicitly (`connectionLimit: 10`, connect timeout 10s) — see `docs/performance.md`.
+
+**Reasoning:** This workload is read-heavy (dashboard, expiry job snapshot, filtered lists) with comparatively low write volume (CRUD + one daily bulk status pass). Index write overhead on `status` changes is small relative to full-table scans without indexes. The composite index matches `WHERE status IN (...) AND deletedAt IS NULL` with optional `expiryDate` range; the leading `status` column also supports status-only filters. Redundant single-column `status` index vs composite is acceptable at current scale; dropping it is a future micro-optimization only if profiling shows measurable PATCH cost.
+
+## 23. No Background Job Queue for Bulk Status PATCH
+
+**Decision:** No background processing queue (e.g. BullMQ, Celery, SQS-driven worker) is used inside the NestJS API to handle `PATCH /compliance-records/bulk-status` requests. The endpoint processes updates synchronously within the HTTP request.
+
+**Reasoning:**
+- `bulk-status` executes at most **3 SQL UPDATE statements** per request — one per distinct `newStatus` value (`active`, `expiring`, `expired`). Each UPDATE covers all matching IDs in a single `WHERE id IN (...)` query, not one row at a time. At the enforced cap of 200 updates per request, this completes in milliseconds.
+- The only caller is the Python expiry job — not an interactive user. The job already handles retries with exponential backoff and logs failed batches without aborting the run. There is no user response-time concern.
+- A queue (BullMQ or equivalent) would add a worker process, job-state table or Redis instance, failure/retry tracking, and dead-letter handling — significant operational overhead with no benefit at this call volume and batch size.
+- Reliability is already handled at the correct layer: the Python job retries on network/timeout errors; the Nest endpoint is idempotent (SQL `WHERE status <> :newStatus` guard); failed batches are skipped and repaired on the next scheduled run.
+
+**When to revisit:** If record volume grows such that a single batch cannot complete within the API's HTTP timeout, or if bulk status updates are triggered by user actions rather than a once-daily scheduled job, introduce background processing at that point.
