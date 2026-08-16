@@ -74,6 +74,7 @@ This document records the security posture, controls, and conventions for the Em
 - All production traffic uses HTTPS. The NestJS API must not serve HTTP in production.
 - The Python job communicates with the NestJS API over HTTPS only. No plaintext HTTP allowed in non-local environments.
 - CORS: The NestJS API should configure an explicit `allowedOrigins` list (via environment variable) rather than allowing `*`. In local development `localhost` origins are permitted; in production only the deployed frontend origin is allowed.
+- **Rate limiting:** Request throttling is enforced in the NestJS application via `@nestjs/throttler` (global per-IP limit plus a stricter limit on `POST /auth/login`). AWS API Gateway or WAF throttling is not used. Configure via `THROTTLE_TTL_MS`, `THROTTLE_LIMIT`, and `LOGIN_THROTTLE_LIMIT` in environment variables.
 
 ---
 
