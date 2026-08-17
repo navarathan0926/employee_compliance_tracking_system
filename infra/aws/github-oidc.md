@@ -15,8 +15,8 @@
 # 4. GitHub repo settings → Secrets and variables → Actions:
 #    Secret:  AWS_ROLE_ARN=arn:aws:iam::ACCOUNT:role/github-actions-deploy
 #    Var:     EB_APP_NAME=compliance-tracking-api
-#    Var:     EB_ENV_NAME=compliance-tracking-api-prod
-#    Var:     LAMBDA_FUNCTION_NAME=compliance-expiry-job
+#    Var:     EB_ENV_NAME=compliance-tracking-api-env
+#    Var:     LAMBDA_FUNCTION_NAME=python-expiry-job
 #    Var:     RUN_SEED=true  (migrate workflow only, first run)
 #
 # 5. Migration workflow secrets (optional):

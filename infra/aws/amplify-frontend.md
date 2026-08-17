@@ -5,7 +5,8 @@
 # 3. Monorepo: set app root to frontend/
 # 4. Build settings: use amplify.yml at repo root (already configured)
 # 5. Environment variables (build time):
-#      PUBLIC_API_BASE_URL=https://<cloudfront-api-domain>/api
+#      PUBLIC_API_BASE_URL=https://<api-id>.execute-api.ap-southeast-1.amazonaws.com/api
+#      (intended: CloudFront domain; this account uses API Gateway — see api-gateway.md)
 # 6. Deploy — Amplify provides HTTPS URL (e.g. https://main.xxxxx.amplifyapp.com)
 # 7. Update backend CORS_ALLOWED_ORIGINS with Amplify URL → redeploy EB
 #

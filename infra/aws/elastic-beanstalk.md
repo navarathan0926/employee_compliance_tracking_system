@@ -18,7 +18,8 @@
 #    (DATABASE_*, JWT_SECRET, CORS_ALLOWED_ORIGINS, THROTTLE_*, etc.)
 #
 # 5. Security groups:
-#    - EB instance SG: allow inbound 80 from CloudFront (or 0.0.0.0/0 for demo)
+#    - EB instance SG: allow inbound 80 from API Gateway / 0.0.0.0/0 for demo
+#      (intended: CloudFront; this account uses API Gateway HTTP API — see api-gateway.md)
 #    - RDS SG: allow 3306 from EB instance SG only
 #
 # 6. Run migrations + seed (once):

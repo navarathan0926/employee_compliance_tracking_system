@@ -65,6 +65,34 @@ def test_publish_event_skips_when_flag_enabled(sample_config, mocker) -> None:
     mock_boto.assert_not_called()
 
 
+def test_events_client_uses_default_credentials_on_lambda(sample_config, mocker) -> None:
+    config = sample_config.__class__(
+        **{
+            **sample_config.__dict__,
+            "skip_event_publish": False,
+            "aws_endpoint_url": None,
+            "aws_access_key_id": "ASIAEXAMPLE",
+            "aws_secret_access_key": "secret",
+        }
+    )
+    mock_client = mocker.Mock()
+    mock_boto = mocker.patch("event_publisher.boto3.client", return_value=mock_client)
+    mock_client.put_events.return_value = {"FailedEntryCount": 0}
+    payload = build_event_payload(
+        config,
+        run_id="run-123",
+        evaluation_date="2026-08-14",
+        successful_updates=[],
+    )
+
+    publish_event(config, payload)
+
+    kwargs = mock_boto.call_args.kwargs
+    assert "aws_access_key_id" not in kwargs
+    assert "aws_secret_access_key" not in kwargs
+    assert "endpoint_url" not in kwargs
+
+
 def test_publish_event_puts_events(sample_config, mocker) -> None:
     config = sample_config.__class__(
         **{

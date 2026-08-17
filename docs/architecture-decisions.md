@@ -25,6 +25,7 @@ This document records the key architecture decisions for the Employee Compliance
 **Decision:** The Python expiry job calls the NestJS API over HTTP rather than connecting to MySQL directly. It runs locally as a script during development, and is deployed later as an AWS Lambda triggered by EventBridge Scheduler.
 
 **Reasoning:**
+
 - Keeps the NestJS API as the single writer to the database, avoiding validation logic drifting out of sync across two codebases.
 - Avoids Lambda-to-RDS VPC networking complexity.
 - The job's core logic is deployment-agnostic, the same code runs as a local script or a Lambda invocation.
@@ -38,6 +39,7 @@ This document records the key architecture decisions for the Employee Compliance
 ## 6. Authentication
 
 **Decision:** Username/password login issuing a short-lived JWT, implemented with **Passport.js** via NestJS integrations:
+
 - **`@nestjs/passport` + `passport-local`** — validates credentials on `POST /auth/login` (LocalStrategy).
 - **`@nestjs/jwt` + `passport-jwt`** — validates the Bearer token on protected routes (JwtStrategy); exposed as a NestJS `JwtAuthGuard` on controllers.
 
@@ -54,6 +56,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 **Why summary, not per-record:** Fewer messages, simpler Free Tier usage, and one run-level audit entry. The summary includes the IDs that actually changed so a future consumer can still act per record without re-querying the API.
 
 **Event payload schema:**
+
 ```json
 {
   "eventType": "compliance.expiry-evaluation.completed",
@@ -103,6 +106,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 ## 11. Bulk Processing, Batching, Retries, Idempotency
 
 **Decision:**
+
 - The expiry job **fetches** all non-archived `active`/`expiring` records via paginated `GET /compliance-records` calls, then **updates** via `PATCH /compliance-records/bulk-status` — not one record at a time.
 - **Fetch phase:** paginate with `limit=200` (the API maximum; configurable constant in the Python job, must not exceed 200) and increment `offset` until all pages are loaded into an in-memory snapshot. **No PATCH calls during the fetch loop** — all reads complete before any write (see Decision #18).
 - **Write phase:** split status updates into PATCH batches (e.g. up to 200 records per request; configurable constant in the Python job) rather than a single unbounded request.
@@ -130,6 +134,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 **Requirement mapping:** The assignment lists `renewed` as a status value. Using `renewed` on the superseded record (not `archived`) preserves that semantics. `archived` is reserved for manual soft-delete and employee cascade only.
 
 **Reasoning:**
+
 - Updating a record in place destroys the historical timeline — you lose what the original expiry date was before renewal.
 - A new-record approach preserves a full, traceable audit chain: you can walk `renewedFromId` links to reconstruct the entire compliance history for an item.
 - Separating `renewed` from `archived` makes audit queries clearer (superseded vs manually removed).
@@ -141,6 +146,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 **Decision:** When an `Employee` is soft-deleted (archived), all of that employee's associated `ComplianceRecord` rows are also soft-deleted in the same operation (`deletedAt` set, `status` set to `archived`). Neither the employee nor their records are hard-deleted.
 
 **Reasoning:**
+
 - Compliance records for a departed employee remain relevant for audits; hard-deleting them would violate the audit trail principle.
 - Soft-deleting records independently of their employee would leave orphaned "active" records in the system, distorting metrics and expiry reports.
 - Cascading at the service layer (rather than a DB cascade) keeps the logic explicit, testable, and visible — it's a deliberate business action, not an implicit side effect.
@@ -152,6 +158,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 **Decision:** All list endpoints (`GET /employees`, `GET /compliance-records`) support limit/offset pagination via `?limit=` and `?offset=` query parameters. Default limit: 50. Maximum enforced limit: 200.
 
 **Reasoning:**
+
 - TypeORM's `skip`/`take` options map directly to SQL `LIMIT`/`OFFSET`, so limit/offset pagination requires no extra infrastructure.
 - Cursor-based pagination is more resilient to insertions mid-page, but requires a stable, unique sort cursor and adds implementation complexity that isn't justified at this scale or use case (compliance dashboards are not infinite-scroll UIs).
 - Enforcing a maximum limit prevents accidental full-table scans from unbounded API calls.
@@ -159,18 +166,21 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 **Response envelope:** Paginated list responses include `{ data: [...], total: number, limit: number, offset: number }` so the client can compute page counts without a separate count call.
 
 **Client usage:**
+
 - **Dashboard UI:** uses limit/offset for interactive paging (page numbers, `total` count).
 - **Python expiry job:** uses the same limit/offset API but with a **snapshot-first** pattern — paginate until all pages are loaded, then evaluate and PATCH (see Decision #18). The job does not PATCH between GET pages.
 
 ## 17. Timezone and Date Column Strategy
 
 **Decision:**
+
 - All timestamp columns (`createdAt`, `updatedAt`, `deletedAt`) are stored in **UTC**.
 - `issuedDate` and `expiryDate` are stored as plain **DATE** columns (no time component), because they represent calendar dates, not moments in time.
 - **Business timezone:** Sri Lanka (`Asia/Colombo`, UTC+5:30). The expiry job, dashboard date filters, and status computation all use the current **Sri Lanka calendar date** as `today`.
 - Expiring-soon buffer: default **30 days**, configurable via `COMPLIANCE_EXPIRING_BUFFER_DAYS`.
 
 **Reasoning:**
+
 - Storing timestamps in UTC is the standard baseline; the application layer converts to the user's local timezone for display if needed.
 - Using DATE (not DATETIME/TIMESTAMP) for `issuedDate`/`expiryDate` avoids spurious timezone-conversion errors — a visa that expires on "2026-12-31" expires on that calendar date regardless of server timezone.
 - The organization operates in Sri Lanka; using `Asia/Colombo` for expiry evaluation aligns "today" with business expectations. The job runs daily at 01:00 `Asia/Colombo` so the evaluation date matches the start of the business day.
@@ -178,6 +188,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 ## 18. Expiry Job Fetch Strategy: Snapshot-First
 
 **Decision:**
+
 - The Python job loads a complete in-memory snapshot of all non-archived `active`/`expiring` records before performing any status updates.
 - Paginate with `GET /compliance-records?status=active,expiring&limit=200&offset=N` until `offset >= total`. Do **not** call `PATCH /compliance-records/bulk-status` between GET pages.
 - After all pages are loaded, deduplicate records by `id` (defensive guard against rare concurrent UI writes during the fetch loop).
@@ -186,6 +197,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 - **Not used now:** cursor-based pagination (`id > lastSeenId`) or process-each-page-then-PATCH. These are future options only if record count grows large enough to make a full snapshot impractical for Lambda memory or timeout.
 
 **Edge cases and handling:**
+
 - **Offset skip during fetch:** avoided by completing all GETs before any PATCH. If the job PATCHed between GET pages, rows leaving the `active`/`expiring` filter would shift pagination and cause records to be skipped.
 - **Concurrent UI writes during GET loop:** a create, renew, or archive between pages may cause a record to be missed or duplicated in the snapshot. Deduplicate by `id`; any missed record is picked up on the next scheduled run.
 - **Record archived/renewed after fetch, before PATCH:** the `bulk-status` endpoint skips `renewed`, `archived`, or missing IDs without failing the entire batch.
@@ -195,6 +207,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 ## 19. Expiry Job Authentication
 
 **Decision:**
+
 - The Python job authenticates via `POST /auth/login` using a dedicated **service account** (seeded user; credentials in environment variables, never in source code).
 - Login **once** at job start; reuse the JWT for all GET, PATCH, and EventBridge calls within the run.
 - On `401 Unauthorized` (token expired mid-run): re-login and **retry that same request once**, then continue — do not restart the entire run from page 0.
@@ -215,6 +228,7 @@ No refresh token mechanism: when a token expires, the client logs in again. No b
 **Decision:** Whenever `issuedDate` or `expiryDate` is created or corrected via the CRUD API (`POST /compliance-records` or `PATCH /compliance-records/:id`), the API recalculates `status` in the **same database transaction** using the shared rule (Decision #17). Clients cannot set `status` directly.
 
 **Status rule:**
+
 ```
 if expiryDate < today (Asia/Colombo)           → expired
 elif expiryDate <= today + buffer (default 30) → expiring
@@ -226,6 +240,7 @@ else                                           → active
 ## 22. ComplianceRecord Indexing and Write Trade-offs
 
 **Decision:**
+
 - Keep single-column indexes on `ComplianceRecord` for hot-path filters: `employeeId`, `status`, `expiryDate`, `deletedAt`.
 - Keep composite index `(status, expiryDate, deletedAt)` for combined filters used by the expiry job fetch and dashboard expiring queries.
 - Accept index maintenance cost on writes (including daily bulk `status` updates from the expiry job). Do **not** remove `status` indexing to optimize PATCH — read paths (paginated list, live metrics, job snapshot) depend on these indexes at scale.
@@ -240,6 +255,7 @@ else                                           → active
 **Decision:** No background processing queue (e.g. BullMQ, Celery, SQS-driven worker) is used inside the NestJS API to handle `PATCH /compliance-records/bulk-status` requests. The endpoint processes updates synchronously within the HTTP request.
 
 **Reasoning:**
+
 - `bulk-status` executes at most **3 SQL UPDATE statements** per request — one per distinct `newStatus` value (`active`, `expiring`, `expired`). Each UPDATE covers all matching IDs in a single `WHERE id IN (...)` query, not one row at a time. At the enforced cap of 200 updates per request, this completes in milliseconds.
 - The only caller is the Python expiry job — not an interactive user. The job already handles retries with exponential backoff and logs failed batches without aborting the run. There is no user response-time concern.
 - A queue (BullMQ or equivalent) would add a worker process, job-state table or Redis instance, failure/retry tracking, and dead-letter handling — significant operational overhead with no benefit at this call volume and batch size.
@@ -247,14 +263,16 @@ else                                           → active
 
 **When to revisit:** If record volume grows such that a single batch cannot complete within the API's HTTP timeout, or if bulk status updates are triggered by user actions rather than a once-daily scheduled job, introduce background processing at that point.
 
-## 24. Production Deployment: EB Single Instance + CloudFront (Free Tier)
+## 24. Production Deployment: EB Single Instance + HTTPS Proxy (Free Tier)
 
-**Decision:** For this demo/assessment deployment in `ap-southeast-1`, the NestJS API runs on **Elastic Beanstalk single instance** (no Application Load Balancer) with **CloudFront** providing HTTPS in front of the EB origin. The SvelteKit frontend is hosted on **Amplify** (branch `main`). The Python expiry job runs on **Lambda** with **EventBridge Scheduler**, calling the API over public HTTPS (no API Gateway, no VPC for Lambda).
+**Decision:** For this demo/assessment deployment in `ap-southeast-1`, the NestJS API runs on **Elastic Beanstalk single instance** (no Application Load Balancer). The SvelteKit frontend is hosted on **Amplify** (branch `main`). The Python expiry job runs on **Lambda** with **EventBridge Scheduler**, calling the API over public HTTPS (no VPC for Lambda).
 
-**Free Tier rationale:** A load-balanced EB environment creates an ALB (~$16+/month, not covered by Free Tier). Single-instance EB uses a Free Tier–eligible `t3.micro` EC2 instance. CloudFront and Amplify have generous free tiers suitable for demo traffic.
+**HTTPS in front of EB:** The intended design is **CloudFront** in front of the EB HTTP origin (TLS at the edge, no ALB). This AWS account cannot create CloudFront distributions until it is verified (`Your account must be verified before you can add new CloudFront resources`). **API Gateway HTTP API** is used instead as a TLS reverse proxy to the same EB origin. It is not used for auth, usage plans, or throttling. Setup: [`infra/aws/api-gateway.md`](../infra/aws/api-gateway.md). Intended CloudFront steps remain in [`infra/aws/cloudfront-api.md`](../infra/aws/cloudfront-api.md) for if/when the account is verified.
 
-**Production recommendation:** For a real production workload, use **load-balanced EB + ALB** for high availability, health-checked multi-instance deployments, and zero-downtime rolling updates. Keep CloudFront (or equivalent CDN) for TLS termination and edge caching where appropriate.
+**Free Tier rationale:** A load-balanced EB environment creates an ALB (~$16+/month, not covered by Free Tier). Single-instance EB uses a Free Tier–eligible `t3.micro` EC2 instance. Amplify and API Gateway HTTP APIs have free-tier allowances suitable for demo traffic. CloudFront would also be Free Tier–eligible if it were available on the account.
 
-**Rate limiting:** Application-layer throttling via `@nestjs/throttler` in NestJS (not API Gateway or WAF). Login endpoint has a stricter per-IP limit than the global default.
+**Production recommendation:** For a real production workload, use **load-balanced EB + ALB** for high availability, health-checked multi-instance deployments, and zero-downtime rolling updates. Prefer CloudFront (or equivalent CDN) for TLS termination and edge caching once the account allows it; keep API Gateway only as a temporary HTTPS proxy.
 
-**Env var strategy:** `.env.production` files in each service are local checklists; **AWS (EB, Lambda, Amplify) is the runtime source of truth**. GitHub Actions holds deploy credentials only (`AWS_ROLE_ARN`, resource names).
+**Rate limiting:** Application-layer throttling via `@nestjs/throttler` in NestJS (not API Gateway usage plans or WAF). Login endpoint has a stricter per-IP limit than the global default.
+
+**Env var strategy:** `.env.production` files in each service are local checklists; **AWS (EB, Lambda, Amplify) is the runtime source of truth**. GitHub Actions holds deploy credentials only (`AWS_ROLE_ARN`, resource names). Clients (`PUBLIC_API_BASE_URL`, Lambda `API_BASE_URL`) point at the HTTPS proxy (`https://<api-id>.execute-api.ap-southeast-1.amazonaws.com/api`), not the raw EB HTTP URL.
