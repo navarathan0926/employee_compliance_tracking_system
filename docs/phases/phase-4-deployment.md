@@ -38,7 +38,7 @@ Lambda (Python expiry job) — EventBridge Scheduler 01:00 Asia/Colombo
 | `frontend/.env.production`   | Checklist → paste into **Amplify build env**         |
 | `expiry-job/.env.production` | Checklist → paste into **Lambda env config**         |
 
-**Runtime source of truth:** AWS (EB, Lambda, Amplify). GitHub secrets hold deploy credentials only (`AWS_ROLE_ARN`, `EB_APP_NAME`, etc.).
+**Runtime source of truth:** AWS (EB, Lambda, Amplify). GitHub secrets hold deploy credentials only (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, resource names).
 
 See [`infra/aws/`](../../infra/aws/) for step-by-step AWS setup guides.
 
@@ -97,7 +97,7 @@ Frontend: Amplify auto-builds on push to `main`.
 
 **GitHub configuration required:**
 
-- Secret: `AWS_ROLE_ARN` (OIDC trust to AWS)
+- Secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (IAM user for EB + Lambda deploy)
 - Vars: `EB_APP_NAME`, `EB_ENV_NAME`, `LAMBDA_FUNCTION_NAME`
 - Migration secrets: `DATABASE_*`, `JWT_SECRET`, `SEED_*` (migrate workflow only)
 

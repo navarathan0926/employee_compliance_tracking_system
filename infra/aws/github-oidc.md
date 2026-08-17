@@ -1,24 +1,29 @@
-# GitHub Actions OIDC setup for AWS deploys
+# GitHub Actions AWS deploy credentials
 #
-# 1. AWS IAM → Identity providers → Add OpenID Connect provider
-#    - Provider URL: https://token.actions.githubusercontent.com
-#    - Audience: sts.amazonaws.com
+# Current approach: IAM user access keys (OIDC is optional follow-up).
 #
-# 2. Create IAM role with trust policy for your GitHub repo:
-#    - repo:YOUR_ORG/employee_compliance_tracking_system:ref:refs/heads/main
+# 1. IAM → Users → Create user (e.g. github-actions-deploy)
+#    Attach:
+#      - AdministratorAccess-AWSElasticBeanstalk
+#      - AWSLambda_FullAccess
 #
-# 3. Attach policies (least privilege):
-#    - elasticbeanstalk:* (or scoped deploy actions)
-#    - lambda:UpdateFunctionCode on specific function
-#    - (optional) rds/connect for migrate workflow from runner with network access
+# 2. Create access key (CLI / programmatic). Copy Access key ID + Secret.
 #
-# 4. GitHub repo settings → Secrets and variables → Actions:
-#    Secret:  AWS_ROLE_ARN=arn:aws:iam::ACCOUNT:role/github-actions-deploy
-#    Var:     EB_APP_NAME=compliance-tracking-api
-#    Var:     EB_ENV_NAME=compliance-tracking-api-env
-#    Var:     LAMBDA_FUNCTION_NAME=python-expiry-job
-#    Var:     RUN_SEED=true  (migrate workflow only, first run)
+# 3. GitHub repo → Settings → Secrets and variables → Actions:
+#    Secrets:
+#      AWS_ACCESS_KEY_ID=AKIA...
+#      AWS_SECRET_ACCESS_KEY=...
+#    Variables:
+#      EB_APP_NAME=compliance-tracking-api
+#      EB_ENV_NAME=Compliance-tracking-api-env
+#      LAMBDA_FUNCTION_NAME=python-expiry-job
+#      RUN_SEED=true  (migrate workflow only, first run)
 #
-# 5. Migration workflow secrets (optional):
+# 4. Migration workflow secrets (optional):
 #    DATABASE_HOST, DATABASE_PORT, DATABASE_USER, DATABASE_PASSWORD,
 #    DATABASE_NAME, JWT_SECRET, SEED_ADMIN_*, SEED_SERVICE_*
+#
+# OIDC (not used by current workflows):
+#    Provider URL: https://token.actions.githubusercontent.com
+#    Audience: sts.amazonaws.com
+#    Role trust: repo:OWNER/employee_compliance_tracking_system:ref:refs/heads/main

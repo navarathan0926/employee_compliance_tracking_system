@@ -275,4 +275,4 @@ else                                           → active
 
 **Rate limiting:** Application-layer throttling via `@nestjs/throttler` in NestJS (not API Gateway usage plans or WAF). Login endpoint has a stricter per-IP limit than the global default.
 
-**Env var strategy:** `.env.production` files in each service are local checklists; **AWS (EB, Lambda, Amplify) is the runtime source of truth**. GitHub Actions holds deploy credentials only (`AWS_ROLE_ARN`, resource names). Clients (`PUBLIC_API_BASE_URL`, Lambda `API_BASE_URL`) point at the HTTPS proxy (`https://<api-id>.execute-api.ap-southeast-1.amazonaws.com/api`), not the raw EB HTTP URL.
+**Env var strategy:** `.env.production` files in each service are local checklists; **AWS (EB, Lambda, Amplify) is the runtime source of truth**. GitHub Actions holds deploy credentials only (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, resource names). Clients (`PUBLIC_API_BASE_URL`, Lambda `API_BASE_URL`) point at the HTTPS proxy (`https://<api-id>.execute-api.ap-southeast-1.amazonaws.com/api`), not the raw EB HTTP URL.
