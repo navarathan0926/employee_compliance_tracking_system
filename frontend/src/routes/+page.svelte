@@ -28,25 +28,52 @@
 		mode: 'preset',
 		days: DEFAULT_EXPIRING_DAYS
 	});
+	let metricsRequestId = 0;
+	let expiringRequestId = 0;
+
+	function sameExpiringFilter(a: ExpiringFilterChange, b: ExpiringFilterChange): boolean {
+		if (a.mode !== b.mode) {
+			return false;
+		}
+
+		if (a.mode === 'preset' && b.mode === 'preset') {
+			return a.days === b.days;
+		}
+
+		return a.mode === 'custom' && b.mode === 'custom' && a.from === b.from && a.to === b.to;
+	}
 
 	async function loadMetrics() {
+		const requestId = ++metricsRequestId;
 		metricsLoading = true;
 		metricsError = '';
 
 		try {
-			metrics = await getMetrics({
+			const nextMetrics = await getMetrics({
 				departmentBreakdown: showDepartmentBreakdown,
 				typeBreakdown: showTypeBreakdown
 			});
+
+			if (requestId !== metricsRequestId) {
+				return;
+			}
+
+			metrics = nextMetrics;
 		} catch (error) {
-			metrics = null;
+			if (requestId !== metricsRequestId) {
+				return;
+			}
+
 			metricsError = error instanceof Error ? error.message : 'Failed to load metrics.';
 		} finally {
-			metricsLoading = false;
+			if (requestId === metricsRequestId) {
+				metricsLoading = false;
+			}
 		}
 	}
 
 	async function loadExpiring() {
+		const requestId = ++expiringRequestId;
 		expiringLoading = true;
 		expiringError = '';
 
@@ -56,6 +83,10 @@
 				offset: expiringOffset
 			});
 
+			if (requestId !== expiringRequestId) {
+				return;
+			}
+
 			expiringRecords = response.data;
 			expiringTotal = response.total;
 			expiringLimit = response.limit;
@@ -63,15 +94,26 @@
 			expiringFrom = response.from;
 			expiringTo = response.to;
 		} catch (error) {
-			expiringRecords = [];
-			expiringTotal = 0;
+			if (requestId !== expiringRequestId) {
+				return;
+			}
+
 			expiringError = error instanceof Error ? error.message : 'Failed to load expiring records.';
+			if (expiringRecords.length === 0) {
+				expiringTotal = 0;
+			}
 		} finally {
-			expiringLoading = false;
+			if (requestId === expiringRequestId) {
+				expiringLoading = false;
+			}
 		}
 	}
 
 	function handleFilterChange(filter: ExpiringFilterChange) {
+		if (sameExpiringFilter(filter, currentFilter) && expiringOffset === 0) {
+			return;
+		}
+
 		currentFilter = filter;
 		expiringOffset = 0;
 		void loadExpiring();
@@ -115,15 +157,17 @@
 		<h2>Compliance overview</h2>
 	</div>
 
-	{#if metricsLoading}
-		<p class="loading-banner">Loading metrics...</p>
-	{:else if metricsError}
+	{#if metricsError}
 		<div class="error-banner" role="alert">
 			<p>{metricsError}</p>
 			<button type="button" class="btn-secondary" onclick={loadMetrics}>Retry</button>
 		</div>
+	{/if}
+
+	{#if !metrics && metricsLoading}
+		<p class="loading-banner">Loading metrics...</p>
 	{:else if metrics}
-		<div class="metrics-grid">
+		<div class="metrics-grid" class:is-refreshing={metricsLoading} aria-busy={metricsLoading}>
 			<MetricsCard label="Active" value={metrics.totals.active} variant="active" />
 			<MetricsCard label="Expiring" value={metrics.totals.expiring} variant="expiring" />
 			<MetricsCard label="Expired" value={metrics.totals.expired} variant="expired" />
@@ -144,8 +188,14 @@
 			</label>
 		</div>
 
-		<BreakdownTable title="By department" labelHeader="Department" rows={departmentRows} />
-		<BreakdownTable title="By type" labelHeader="Type" rows={typeRows} />
+		<div class:is-refreshing={metricsLoading} aria-busy={metricsLoading}>
+			{#if showDepartmentBreakdown}
+				<BreakdownTable title="By department" labelHeader="Department" rows={departmentRows} />
+			{/if}
+			{#if showTypeBreakdown}
+				<BreakdownTable title="By type" labelHeader="Type" rows={typeRows} />
+			{/if}
+		</div>
 	{/if}
 </section>
 

@@ -158,7 +158,11 @@
 		</div>
 	</form>
 
-	<div class="table-wrap">
+	<div
+		class="table-wrap"
+		class:table-wrap--busy={loading && records.length > 0}
+		aria-busy={loading}
+	>
 		<table>
 			<thead>
 				<tr>
@@ -172,7 +176,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#if loading}
+				{#if loading && records.length === 0}
 					<tr>
 						<td colspan="7" class="table-state">Loading records...</td>
 					</tr>
