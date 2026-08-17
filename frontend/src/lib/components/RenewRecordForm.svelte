@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CloseButton from '$lib/components/CloseButton.svelte';
 	import type { ComplianceRecord } from '$lib/types';
 	import {
 		hasFieldErrors,
@@ -75,9 +76,7 @@
 		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="renew-form-title">
 			<header class="modal__header">
 				<h2 id="renew-form-title">Renew record #{record.id}</h2>
-				<button type="button" class="btn-text" onclick={() => onclose?.()} aria-label="Close">
-					Close
-				</button>
+				<CloseButton onclick={() => onclose?.()} />
 			</header>
 
 			<p class="modal__hint">

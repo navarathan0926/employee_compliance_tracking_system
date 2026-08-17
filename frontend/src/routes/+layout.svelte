@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { resolve } from '$app/paths';
-	import favicon from '$lib/assets/favicon.svg';
+	import ToastViewport from '$lib/components/ToastViewport.svelte';
 	import { clearToken } from '$lib/auth';
 
 	let { children, data } = $props();
@@ -19,7 +19,6 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
 	<title>Compliance Dashboard</title>
 </svelte:head>
 
@@ -44,4 +43,6 @@
 	<main class:app-main={!data.isLoginPage}>
 		{@render children()}
 	</main>
+
+	<ToastViewport />
 </div>

@@ -4,6 +4,7 @@
 	import ComplianceRecordsTable, {
 		type RecordListFilters
 	} from '$lib/components/ComplianceRecordsTable.svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import RenewRecordForm from '$lib/components/RenewRecordForm.svelte';
 	import {
 		ApiError,
@@ -15,7 +16,9 @@
 		renewComplianceRecord,
 		updateComplianceRecord
 	} from '$lib/api';
+	import { formatComplianceType } from '$lib/format';
 	import { DEFAULT_PAGE_LIMIT } from '$lib/query';
+	import { notify } from '$lib/toast.svelte';
 	import type { ComplianceRecord, ComplianceType, Employee } from '$lib/types';
 
 	let employees = $state<Employee[]>([]);
@@ -45,6 +48,10 @@
 	let renewSubmitting = $state(false);
 	let renewError = $state('');
 
+	let archiveTarget = $state<ComplianceRecord | null>(null);
+	let archiveBusy = $state(false);
+	let archiveError = $state('');
+
 	async function loadEmployees() {
 		const response = await listEmployees({ limit: 200, offset: 0 });
 		employees = response.data;
@@ -70,8 +77,9 @@
 			limit = response.limit;
 			offset = response.offset;
 		} catch (error) {
-			records = [];
-			total = 0;
+			if (records.length === 0) {
+				total = 0;
+			}
 			listError = error instanceof Error ? error.message : 'Failed to load compliance records.';
 		} finally {
 			loading = false;
@@ -137,12 +145,14 @@
 					expiryDate: payload.expiryDate,
 					notes: payload.notes || undefined
 				});
+				notify(`Created ${formatComplianceType(payload.type)} record.`);
 			} else if (editingRecord) {
 				await updateComplianceRecord(editingRecord.id, {
 					issuedDate: payload.issuedDate,
 					expiryDate: payload.expiryDate,
 					notes: payload.notes || undefined
 				});
+				notify(`Updated ${formatComplianceType(editingRecord.type)} record.`);
 			}
 
 			closeForm();
@@ -185,6 +195,7 @@
 				notes: payload.notes || undefined
 			});
 
+			notify(`Renewed ${formatComplianceType(renewingRecord.type)} record.`);
 			closeRenewForm();
 			await loadRecords();
 		} catch (error) {
@@ -194,23 +205,46 @@
 		}
 	}
 
-	async function handleArchive(record: ComplianceRecord) {
-		const confirmed = confirm(
-			`Archive compliance record #${record.id}? This soft-deletes the record and sets status to archived.`
-		);
+	function employeeName(record: ComplianceRecord): string {
+		const employee = employees.find((item) => item.id === record.employeeId);
+		return employee?.name ?? record.employee?.name ?? 'this employee';
+	}
 
-		if (!confirmed) {
+	function openArchiveDialog(record: ComplianceRecord) {
+		archiveTarget = record;
+		archiveError = '';
+	}
+
+	function closeArchiveDialog() {
+		if (archiveBusy) {
 			return;
 		}
 
+		archiveTarget = null;
+		archiveError = '';
+	}
+
+	async function confirmArchive() {
+		if (!archiveTarget) {
+			return;
+		}
+
+		archiveBusy = true;
+		archiveError = '';
 		listError = '';
 
 		try {
-			await archiveComplianceRecord(record.id);
+			const type = formatComplianceType(archiveTarget.type);
+			const name = employeeName(archiveTarget);
+			await archiveComplianceRecord(archiveTarget.id);
+			archiveTarget = null;
+			notify(`Archived ${name}'s ${type}.`);
 			await loadRecords();
 		} catch (error) {
-			listError =
+			archiveError =
 				error instanceof ApiError ? error.message : 'Unable to archive compliance record.';
+		} finally {
+			archiveBusy = false;
 		}
 	}
 
@@ -255,7 +289,7 @@
 		oncreate={openCreateForm}
 		onedit={openEditForm}
 		onrenew={openRenewForm}
-		onarchive={handleArchive}
+		onarchive={openArchiveDialog}
 	/>
 </section>
 
@@ -277,4 +311,19 @@
 	serverError={renewError}
 	onclose={closeRenewForm}
 	onsubmit={handleRenewSubmit}
+/>
+
+<ConfirmDialog
+	open={archiveTarget !== null}
+	title="Archive this record?"
+	message={archiveTarget
+		? `${employeeName(archiveTarget)}'s ${formatComplianceType(archiveTarget.type)} will be archived and removed from active lists.`
+		: ''}
+	confirmLabel="Archive"
+	variant="danger"
+	busy={archiveBusy}
+	busyLabel="Archiving..."
+	error={archiveError}
+	oncancel={closeArchiveDialog}
+	onconfirm={confirmArchive}
 />

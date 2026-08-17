@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CloseButton from '$lib/components/CloseButton.svelte';
 	import { formatComplianceType } from '$lib/format';
 	import {
 		COMPLIANCE_TYPES,
@@ -120,9 +121,7 @@
 		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="record-form-title">
 			<header class="modal__header">
 				<h2 id="record-form-title">{mode === 'create' ? 'Create record' : 'Edit record'}</h2>
-				<button type="button" class="btn-text" onclick={() => onclose?.()} aria-label="Close">
-					Close
-				</button>
+				<CloseButton onclick={() => onclose?.()} />
 			</header>
 
 			{#if serverError}
