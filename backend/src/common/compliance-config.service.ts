@@ -14,7 +14,10 @@ export class ComplianceConfigService {
   }
 
   get timezone(): string {
-    return this.configService.get<string>('COMPLIANCE_TIMEZONE', 'Asia/Colombo');
+    return this.configService.get<string>(
+      'COMPLIANCE_TIMEZONE',
+      'Asia/Colombo',
+    );
   }
 
   get bcryptRounds(): number {

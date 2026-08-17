@@ -99,9 +99,7 @@ describe('DashboardService', () => {
 
   it('includes optional department and type breakdowns', async () => {
     baseQueryBuilder.getRawMany
-      .mockResolvedValueOnce([
-        { status: ComplianceStatus.ACTIVE, count: '1' },
-      ])
+      .mockResolvedValueOnce([{ status: ComplianceStatus.ACTIVE, count: '1' }])
       .mockResolvedValueOnce([
         {
           key: 'Engineering',
@@ -110,7 +108,11 @@ describe('DashboardService', () => {
         },
       ])
       .mockResolvedValueOnce([
-        { key: ComplianceType.VISA, status: ComplianceStatus.ACTIVE, count: '1' },
+        {
+          key: ComplianceType.VISA,
+          status: ComplianceStatus.ACTIVE,
+          count: '1',
+        },
       ]);
 
     const result = await service.getMetrics({

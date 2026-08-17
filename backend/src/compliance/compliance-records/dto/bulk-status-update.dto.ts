@@ -8,9 +8,7 @@ import {
   IsInt,
   ValidateNested,
 } from 'class-validator';
-import {
-  MAX_PAGE_LIMIT,
-} from '../../../common/dto/pagination-query.dto';
+import { MAX_PAGE_LIMIT } from '../../../common/dto/pagination-query.dto';
 import {
   BULK_UPDATE_STATUSES,
   ComplianceStatus,

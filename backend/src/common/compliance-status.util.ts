@@ -1,4 +1,7 @@
-import { ComplianceStatus, EvaluableComplianceStatus } from './enums/compliance-status.enum';
+import {
+  ComplianceStatus,
+  EvaluableComplianceStatus,
+} from './enums/compliance-status.enum';
 import { addDaysToDateString } from './date.util';
 
 export function computeComplianceStatus(

@@ -10,7 +10,12 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiNoContentResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiNoContentResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ComplianceRecordService } from './compliance-record.service';
 import { BulkStatusUpdateDto } from './dto/bulk-status-update.dto';
 import { CreateComplianceRecordDto } from './dto/create-compliance-record.dto';

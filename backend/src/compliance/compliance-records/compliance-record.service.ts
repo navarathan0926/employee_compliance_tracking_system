@@ -50,7 +50,10 @@ export class ComplianceRecordService {
     );
   }
 
-  private assertExpiryAfterIssued(issuedDate: string, expiryDate: string): void {
+  private assertExpiryAfterIssued(
+    issuedDate: string,
+    expiryDate: string,
+  ): void {
     if (expiryDate <= issuedDate) {
       throw new BadRequestException('expiryDate must be after issuedDate');
     }
@@ -62,7 +65,9 @@ export class ComplianceRecordService {
     });
 
     if (!employee) {
-      throw new BadRequestException(`Employee ${employeeId} not found or archived`);
+      throw new BadRequestException(
+        `Employee ${employeeId} not found or archived`,
+      );
     }
 
     return employee;
@@ -236,7 +241,9 @@ export class ComplianceRecordService {
     );
   }
 
-  async bulkStatusUpdate(dto: BulkStatusUpdateDto): Promise<{ processed: number }> {
+  async bulkStatusUpdate(
+    dto: BulkStatusUpdateDto,
+  ): Promise<{ processed: number }> {
     const ids = dto.updates.map((update) => update.id);
     const records = await this.complianceRecordsRepository.find({
       where: { id: In(ids) },

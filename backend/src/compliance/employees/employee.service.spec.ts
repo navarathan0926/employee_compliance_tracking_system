@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeepPartial, EntityManager, Repository } from 'typeorm';
 import { ComplianceRecord } from '../compliance-records/compliance-record.entity';
 import { EmployeeService } from './employee.service';
 import { Employee } from './employee.entity';
@@ -14,8 +14,10 @@ describe('EmployeeService', () => {
   beforeEach(async () => {
     transactionMock = jest.fn();
     employeesRepo = {
-      create: jest.fn((value) => value),
-      save: jest.fn(async (value) => ({ id: 1, ...value })),
+      create: jest.fn((value: DeepPartial<Employee>) => value as Employee),
+      save: jest.fn((value: DeepPartial<Employee>) =>
+        Promise.resolve({ id: 1, ...value } as Employee),
+      ),
       findOne: jest.fn(),
       createQueryBuilder: jest.fn(),
       manager: {
@@ -49,18 +51,19 @@ describe('EmployeeService', () => {
 
     const softRemove = jest.fn();
     const execute = jest.fn();
-    transactionMock.mockImplementation(async (callback) =>
-      callback({
-        findOne: jest.fn().mockResolvedValue(employee),
-        softRemove,
-        createQueryBuilder: jest.fn(() => ({
-          update: jest.fn().mockReturnThis(),
-          set: jest.fn().mockReturnThis(),
-          where: jest.fn().mockReturnThis(),
-          andWhere: jest.fn().mockReturnThis(),
-          execute,
-        })),
-      }),
+    transactionMock.mockImplementation(
+      (callback: (manager: EntityManager) => unknown) =>
+        callback({
+          findOne: jest.fn().mockResolvedValue(employee),
+          softRemove,
+          createQueryBuilder: jest.fn(() => ({
+            update: jest.fn().mockReturnThis(),
+            set: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            execute,
+          })),
+        } as unknown as EntityManager),
     );
 
     await service.archive(1);
@@ -70,12 +73,15 @@ describe('EmployeeService', () => {
   });
 
   it('throws NotFoundException when employee is missing', async () => {
-    transactionMock.mockImplementation(async (callback) =>
-      callback({
-        findOne: jest.fn().mockResolvedValue(null),
-      }),
+    transactionMock.mockImplementation(
+      (callback: (manager: EntityManager) => unknown) =>
+        callback({
+          findOne: jest.fn().mockResolvedValue(null),
+        } as unknown as EntityManager),
     );
 
-    await expect(service.archive(404)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.archive(404)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });

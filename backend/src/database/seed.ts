@@ -1,17 +1,1 @@
-import { config } from 'dotenv';
-import dataSource from './data-source';
-import { runSeed } from './run-seed';
-
-config({ path: '.env' });
-
-async function seed(): Promise<void> {
-  await dataSource.initialize();
-  await runSeed(dataSource);
-  await dataSource.destroy();
-  console.log('Seed completed successfully');
-}
-
-seed().catch((error: unknown) => {
-  console.error('Seed failed', error);
-  process.exit(1);
-});
+import { config } from 'dotenv';import dataSource from './data-source';import { runSeed } from './run-seed';config({ path: '.env' });async function seed(): Promise<void> {  await dataSource.initialize();  await runSeed(dataSource);  await dataSource.destroy();  console.log('Seed completed successfully');}seed().catch((error: unknown) => {  console.error('Seed failed', error);  process.exit(1);});

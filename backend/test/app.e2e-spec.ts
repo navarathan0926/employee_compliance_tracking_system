@@ -7,6 +7,28 @@ import { prepareE2eDatabase } from './prepare-e2e-database';
 
 jest.setTimeout(30_000);
 
+type LoginResponseBody = {
+  accessToken: string;
+};
+
+type EntityIdBody = {
+  id: number;
+};
+
+type RenewedRecordBody = {
+  id: number;
+  renewedFromId: number;
+  status: string;
+};
+
+type MetricsBody = {
+  totals: {
+    active: number;
+    expiring: number;
+    expired: number;
+  };
+};
+
 describe('Compliance API (e2e)', () => {
   let app: INestApplication<App>;
   let accessToken: string;
@@ -42,7 +64,7 @@ describe('Compliance API (e2e)', () => {
       );
     }
 
-    accessToken = loginResponse.body.accessToken;
+    accessToken = (loginResponse.body as LoginResponseBody).accessToken;
   });
 
   afterAll(async () => {
@@ -75,48 +97,52 @@ describe('Compliance API (e2e)', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ name: 'E2E User', department: 'QA' })
       .expect(201);
+    const employeeBody = employeeResponse.body as EntityIdBody;
 
     const recordResponse = await request(app.getHttpServer())
       .post('/api/compliance-records')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
-        employeeId: employeeResponse.body.id,
+        employeeId: employeeBody.id,
         type: 'visa',
         issuedDate: '2026-01-01',
         expiryDate: '2026-09-01',
       })
       .expect(201);
+    const recordBody = recordResponse.body as EntityIdBody;
 
     const renewResponse = await request(app.getHttpServer())
-      .post(`/api/compliance-records/${recordResponse.body.id}/renew`)
+      .post(`/api/compliance-records/${recordBody.id}/renew`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
         issuedDate: '2026-08-01',
         expiryDate: '2027-08-01',
       })
       .expect(201);
+    const renewedBody = renewResponse.body as RenewedRecordBody;
 
-    expect(renewResponse.body.renewedFromId).toBe(recordResponse.body.id);
-    expect(renewResponse.body.status).toBe('active');
+    expect(renewedBody.renewedFromId).toBe(recordBody.id);
+    expect(renewedBody.status).toBe('active');
 
     const metricsResponse = await request(app.getHttpServer())
       .get('/api/dashboard/metrics')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
+    const metricsBody = metricsResponse.body as MetricsBody;
 
-    const { active, expiring, expired } = metricsResponse.body.totals;
+    const { active, expiring, expired } = metricsBody.totals;
     expect(active + expiring + expired).toBeGreaterThanOrEqual(1);
 
     await request(app.getHttpServer())
       .patch('/api/compliance-records/bulk-status')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
-        updates: [{ id: renewResponse.body.id, newStatus: 'active' }],
+        updates: [{ id: renewedBody.id, newStatus: 'active' }],
       })
       .expect(200);
 
     await request(app.getHttpServer())
-      .delete(`/api/employees/${employeeResponse.body.id}`)
+      .delete(`/api/employees/${employeeBody.id}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(204);
   });

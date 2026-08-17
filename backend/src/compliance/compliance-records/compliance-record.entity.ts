@@ -14,7 +14,11 @@ import { ComplianceStatus } from '../../common/enums/compliance-status.enum';
 import { Employee } from '../employees/employee.entity';
 
 @Entity('compliance_records')
-@Index('IDX_compliance_status_expiry_deleted', ['status', 'expiryDate', 'deletedAt'])
+@Index('IDX_compliance_status_expiry_deleted', [
+  'status',
+  'expiryDate',
+  'deletedAt',
+])
 export class ComplianceRecord {
   @PrimaryGeneratedColumn()
   id!: number;

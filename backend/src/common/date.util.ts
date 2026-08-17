@@ -1,4 +1,7 @@
-export function getTodayInTimezone(timezone: string, referenceDate = new Date()): string {
+export function getTodayInTimezone(
+  timezone: string,
+  referenceDate = new Date(),
+): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric',
