@@ -13,28 +13,30 @@
 ```
 RDS (MySQL, UTC) — private, EB SG only
   ↑
-EB single instance (NestJS API, no ALB)
+EB single instance (NestJS API, no ALB, HTTP :80)
   ↑
-CloudFront (API HTTPS) ← Amplify frontend + Lambda job
+API Gateway HTTP API (HTTPS proxy) ← Amplify frontend + Lambda job
 
 Amplify Hosting (SvelteKit static, branch: main)
 
 Lambda (Python expiry job) — EventBridge Scheduler 01:00 Asia/Colombo
-  → HTTPS → CloudFront → API
+  → HTTPS → API Gateway → EB → API
   → EventBridge → SQS
 ```
 
-**Not used:** API Gateway, VPC for Lambda, ALB (cost control — see Architecture Decision #24).
+**Not used:** ALB, VPC for Lambda (cost control — see Architecture Decision #24).
+
+**CloudFront vs API Gateway:** CloudFront was the intended HTTPS front for EB. This AWS account blocks new CloudFront distributions until Support verifies the account. API Gateway HTTP API is the workaround (TLS proxy only — not auth or throttling). See [`infra/aws/api-gateway.md`](../../infra/aws/api-gateway.md) and [`infra/aws/cloudfront-api.md`](../../infra/aws/cloudfront-api.md).
 
 ---
 
 ## Environment variables
 
-| File | Purpose |
-|------|---------|
-| `backend/.env.production` | Checklist → paste into **EB Environment properties** |
-| `frontend/.env.production` | Checklist → paste into **Amplify build env** |
-| `expiry-job/.env.production` | Checklist → paste into **Lambda env config** |
+| File                         | Purpose                                              |
+| ---------------------------- | ---------------------------------------------------- |
+| `backend/.env.production`    | Checklist → paste into **EB Environment properties** |
+| `frontend/.env.production`   | Checklist → paste into **Amplify build env**         |
+| `expiry-job/.env.production` | Checklist → paste into **Lambda env config**         |
 
 **Runtime source of truth:** AWS (EB, Lambda, Amplify). GitHub secrets hold deploy credentials only (`AWS_ROLE_ARN`, `EB_APP_NAME`, etc.).
 
@@ -54,13 +56,13 @@ See [`infra/aws/`](../../infra/aws/) for step-by-step AWS setup guides.
 
 - [ ] EB **single instance** (not load balanced) — [`infra/aws/elastic-beanstalk.md`](../../infra/aws/elastic-beanstalk.md)
 - [ ] Env vars from `backend/.env.production`
-- [ ] CloudFront HTTPS in front of EB — [`infra/aws/cloudfront-api.md`](../../infra/aws/cloudfront-api.md)
+- [ ] HTTPS in front of EB: API Gateway HTTP API (workaround) — [`infra/aws/api-gateway.md`](../../infra/aws/api-gateway.md). Intended: CloudFront — [`infra/aws/cloudfront-api.md`](../../infra/aws/cloudfront-api.md)
 - [ ] Application-layer rate limiting via `@nestjs/throttler`
 
 ### 4.3 Frontend
 
 - [ ] Amplify Hosting from `main`, app root `frontend/` — [`infra/aws/amplify-frontend.md`](../../infra/aws/amplify-frontend.md)
-- [ ] `PUBLIC_API_BASE_URL` → CloudFront API URL
+- [ ] `PUBLIC_API_BASE_URL` → API Gateway HTTPS URL (`https://<api-id>.execute-api.ap-southeast-1.amazonaws.com/api`)
 - [ ] Static adapter (`@sveltejs/adapter-static`), output `build/`
 
 ### 4.4 Expiry job
@@ -84,16 +86,17 @@ See [`infra/aws/`](../../infra/aws/) for step-by-step AWS setup guides.
 
 ## CI/CD (GitHub Actions, branch: `main`)
 
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| `ci.yml` | PR + push to `main` | lint + test all apps |
-| `deploy-backend.yml` | push to `main`, `backend/**` | EB deploy |
-| `deploy-lambda.yml` | push to `main`, `expiry-job/**` | Lambda code update |
-| `migrate.yml` | manual `workflow_dispatch` | migrations (+ optional seed) |
+| Workflow             | Trigger                         | Purpose                      |
+| -------------------- | ------------------------------- | ---------------------------- |
+| `ci.yml`             | PR + push to `main`             | lint + test all apps         |
+| `deploy-backend.yml` | push to `main`, `backend/**`    | EB deploy                    |
+| `deploy-lambda.yml`  | push to `main`, `expiry-job/**` | Lambda code update           |
+| `migrate.yml`        | manual `workflow_dispatch`      | migrations (+ optional seed) |
 
 Frontend: Amplify auto-builds on push to `main`.
 
 **GitHub configuration required:**
+
 - Secret: `AWS_ROLE_ARN` (OIDC trust to AWS)
 - Vars: `EB_APP_NAME`, `EB_ENV_NAME`, `LAMBDA_FUNCTION_NAME`
 - Migration secrets: `DATABASE_*`, `JWT_SECRET`, `SEED_*` (migrate workflow only)
@@ -102,7 +105,7 @@ Frontend: Amplify auto-builds on push to `main`.
 
 ## Lambda → API (no extra AWS integration)
 
-Lambda calls NestJS over **public HTTPS** through CloudFront:
+Lambda calls NestJS over **public HTTPS** through API Gateway (CloudFront was blocked on this account):
 
 1. `POST /auth/login` (service account) → JWT
 2. Paginated `GET /compliance-records`
@@ -122,7 +125,7 @@ CORS does not apply (server-side client, no Origin header). Lambda does not conn
 
 ## References
 
-- Architecture Decision #24 (EB single instance + CloudFront vs EB+ALB)
+- Architecture Decision #24 (EB single instance + API Gateway HTTPS proxy; CloudFront intended)
 - `docs/process-flow.md` §6
 - Architecture decisions #7, #12, #20
 - `.env.example`, `backend/.env.production`, `frontend/.env.production`, `expiry-job/.env.production`

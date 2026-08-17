@@ -3,6 +3,7 @@
 # 1. Build deployment package:
 #    cd expiry-job
 #    ./scripts/build-lambda.sh   (or build-lambda.ps1 on Windows)
+#    Uses requirements-lambda.txt (runtime deps only; Linux x86_64 wheels on Windows).
 #
 # 2. Create Lambda function (ap-southeast-1):
 #    - Runtime: Python 3.11+

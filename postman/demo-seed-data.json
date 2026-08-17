@@ -1,0 +1,425 @@
+{
+  "description": "Demo seed data for Postman. Status rules use Asia/Colombo calendar date with 30-day buffer. Seeded on 2026-08-16; expiry job runs 2026-08-17 01:00 Asia/Colombo.",
+  "jobTestTransitions": [
+    {
+      "tag": "JOB-TEST-A",
+      "employee": "Amara Perera",
+      "expiryDate": "2026-08-16",
+      "statusOnSeedDay": "expiring",
+      "statusAfterJob": "expired",
+      "reason": "expiryDate < 2026-08-17 after job evaluation date"
+    },
+    {
+      "tag": "JOB-TEST-B",
+      "employee": "Rajesh Kumar",
+      "expiryDate": "2026-09-16",
+      "statusOnSeedDay": "active",
+      "statusAfterJob": "expiring",
+      "reason": "2026-09-16 enters 30-day window when today becomes 2026-08-17"
+    },
+    {
+      "tag": "JOB-TEST-C",
+      "employee": "Nimali Fernando",
+      "expiryDate": "2026-08-15",
+      "statusOnSeedDay": "expired",
+      "statusAfterJob": "expired",
+      "reason": "already expired; job should skip (no status change)"
+    },
+    {
+      "tag": "JOB-TEST-D",
+      "employee": "Priya Sivan",
+      "expiryDate": "2026-08-17",
+      "statusOnSeedDay": "expiring",
+      "statusAfterJob": "expiring",
+      "reason": "still inside buffer; no change expected"
+    },
+    {
+      "tag": "JOB-TEST-E",
+      "employee": "Marcus Silva",
+      "expiryDate": "2026-09-17",
+      "statusOnSeedDay": "active",
+      "statusAfterJob": "active",
+      "reason": "outside buffer on both days; no change expected"
+    }
+  ],
+  "employees": [
+    {
+      "name": "Amara Perera",
+      "department": "Engineering",
+      "records": [
+        {
+          "type": "visa",
+          "issuedDate": "2024-08-17",
+          "expiryDate": "2026-08-16",
+          "notes": "JOB-TEST-A: expiring on seed day; should become expired after 1am job on 2026-08-17"
+        },
+        {
+          "type": "certification",
+          "issuedDate": "2025-01-10",
+          "expiryDate": "2027-06-30",
+          "notes": "AWS Solutions Architect — valid"
+        }
+      ]
+    },
+    {
+      "name": "Rajesh Kumar",
+      "department": "Engineering",
+      "records": [
+        {
+          "type": "background_check",
+          "issuedDate": "2025-09-01",
+          "expiryDate": "2026-09-16",
+          "notes": "JOB-TEST-B: active on seed day; should become expiring after 1am job on 2026-08-17"
+        },
+        {
+          "type": "training",
+          "issuedDate": "2026-02-15",
+          "expiryDate": "2026-08-28",
+          "notes": "Security awareness — expiring soon"
+        }
+      ]
+    },
+    {
+      "name": "Nimali Fernando",
+      "department": "HR",
+      "records": [
+        {
+          "type": "certification",
+          "issuedDate": "2023-08-01",
+          "expiryDate": "2026-08-15",
+          "notes": "JOB-TEST-C: already expired; job should not change status"
+        },
+        {
+          "type": "training",
+          "issuedDate": "2025-11-01",
+          "expiryDate": "2026-09-05",
+          "notes": "HR compliance training"
+        }
+      ]
+    },
+    {
+      "name": "Priya Sivan",
+      "department": "HR",
+      "records": [
+        {
+          "type": "visa",
+          "issuedDate": "2024-08-18",
+          "expiryDate": "2026-08-17",
+          "notes": "JOB-TEST-D: expiring on both seed day and job day; no change expected"
+        },
+        {
+          "type": "other",
+          "issuedDate": "2025-03-01",
+          "expiryDate": "2027-03-01",
+          "notes": "Work permit endorsement"
+        }
+      ]
+    },
+    {
+      "name": "Marcus Silva",
+      "department": "Finance",
+      "records": [
+        {
+          "type": "certification",
+          "issuedDate": "2025-09-18",
+          "expiryDate": "2026-09-17",
+          "notes": "JOB-TEST-E: active on seed day and after job; no change expected"
+        },
+        {
+          "type": "background_check",
+          "issuedDate": "2024-01-15",
+          "expiryDate": "2026-08-20",
+          "notes": "Annual background check"
+        }
+      ]
+    },
+    {
+      "name": "Elena Rodrigo",
+      "department": "Finance",
+      "records": [
+        {
+          "type": "training",
+          "issuedDate": "2026-01-20",
+          "expiryDate": "2026-09-10",
+          "notes": "Anti-money laundering course"
+        },
+        {
+          "type": "certification",
+          "issuedDate": "2023-05-01",
+          "expiryDate": "2026-07-20",
+          "notes": "CPA continuing education — expired"
+        }
+      ]
+    },
+    {
+      "name": "James Wickramasinghe",
+      "department": "Operations",
+      "records": [
+        {
+          "type": "visa",
+          "issuedDate": "2023-06-01",
+          "expiryDate": "2027-05-31",
+          "notes": "Resident visa"
+        },
+        {
+          "type": "training",
+          "issuedDate": "2026-03-01",
+          "expiryDate": "2026-08-25",
+          "notes": "Warehouse safety"
+        },
+        {
+          "type": "background_check",
+          "issuedDate": "2025-08-01",
+          "expiryDate": "2026-08-01",
+          "notes": "Pre-employment check — expired"
+        }
+      ]
+    },
+    {
+      "name": "Sofia Mendis",
+      "department": "Operations",
+      "records": [
+        {
+          "type": "certification",
+          "issuedDate": "2024-11-01",
+          "expiryDate": "2026-09-01",
+          "notes": "Forklift operator license"
+        },
+        {
+          "type": "other",
+          "issuedDate": "2025-07-01",
+          "expiryDate": "2028-07-01",
+          "notes": "Site access badge renewal"
+        }
+      ]
+    },
+    {
+      "name": "Daniel Perera",
+      "department": "Legal",
+      "records": [
+        {
+          "type": "certification",
+          "issuedDate": "2022-09-01",
+          "expiryDate": "2026-06-30",
+          "notes": "Bar association membership — expired"
+        },
+        {
+          "type": "training",
+          "issuedDate": "2026-05-01",
+          "expiryDate": "2026-08-30",
+          "notes": "Data privacy refresher"
+        }
+      ]
+    },
+    {
+      "name": "Aisha Rahman",
+      "department": "Legal",
+      "records": [
+        {
+          "type": "visa",
+          "issuedDate": "2024-02-01",
+          "expiryDate": "2027-01-31",
+          "notes": "Employment pass"
+        },
+        {
+          "type": "background_check",
+          "issuedDate": "2025-09-15",
+          "expiryDate": "2026-09-14",
+          "notes": "Due diligence clearance"
+        }
+      ]
+    },
+    {
+      "name": "Chris Abeysekera",
+      "department": "Sales",
+      "records": [
+        {
+          "type": "training",
+          "issuedDate": "2025-12-01",
+          "expiryDate": "2026-08-22",
+          "notes": "Product compliance briefing"
+        },
+        {
+          "type": "certification",
+          "issuedDate": "2024-04-01",
+          "expiryDate": "2027-04-01",
+          "notes": "CRM administrator"
+        }
+      ]
+    },
+    {
+      "name": "Fatima Noor",
+      "department": "Sales",
+      "records": [
+        {
+          "type": "visa",
+          "issuedDate": "2023-10-01",
+          "expiryDate": "2026-08-10",
+          "notes": "Work visa — expired"
+        },
+        {
+          "type": "other",
+          "issuedDate": "2026-02-01",
+          "expiryDate": "2026-09-12",
+          "notes": "Regional sales authorization"
+        }
+      ]
+    },
+    {
+      "name": "Oliver Gunasekara",
+      "department": "IT Support",
+      "records": [
+        {
+          "type": "certification",
+          "issuedDate": "2025-03-15",
+          "expiryDate": "2027-03-14",
+          "notes": "CompTIA Security+"
+        },
+        {
+          "type": "training",
+          "issuedDate": "2026-04-01",
+          "expiryDate": "2026-08-19",
+          "notes": "Incident response drill"
+        }
+      ]
+    },
+    {
+      "name": "Meera Balasubramaniam",
+      "department": "IT Support",
+      "records": [
+        {
+          "type": "background_check",
+          "issuedDate": "2024-08-01",
+          "expiryDate": "2026-08-05",
+          "notes": "Vendor access screening — expired"
+        },
+        {
+          "type": "training",
+          "issuedDate": "2025-10-01",
+          "expiryDate": "2026-10-01",
+          "notes": "ITIL foundation refresher"
+        }
+      ]
+    },
+    {
+      "name": "Liam Jayawardena",
+      "department": "Engineering",
+      "records": [
+        {
+          "type": "visa",
+          "issuedDate": "2025-01-01",
+          "expiryDate": "2028-01-01",
+          "notes": "Skilled migrant visa"
+        },
+        {
+          "type": "certification",
+          "issuedDate": "2024-07-01",
+          "expiryDate": "2026-08-24",
+          "notes": "Kubernetes administrator"
+        },
+        {
+          "type": "training",
+          "issuedDate": "2026-06-01",
+          "expiryDate": "2026-09-15",
+          "notes": "Secure coding workshop"
+        }
+      ]
+    },
+    {
+      "name": "Anya Costa",
+      "department": "Engineering",
+      "records": [
+        {
+          "type": "background_check",
+          "issuedDate": "2025-02-01",
+          "expiryDate": "2026-07-01",
+          "notes": "Contractor screening — expired"
+        },
+        {
+          "type": "other",
+          "issuedDate": "2023-09-01",
+          "expiryDate": "2027-09-01",
+          "notes": "GitHub enterprise access review"
+        }
+      ]
+    },
+    {
+      "name": "Hiro Tanaka",
+      "department": "Operations",
+      "records": [
+        {
+          "type": "visa",
+          "issuedDate": "2024-05-01",
+          "expiryDate": "2026-08-29",
+          "notes": "Transfer visa — expiring"
+        },
+        {
+          "type": "training",
+          "issuedDate": "2025-08-15",
+          "expiryDate": "2026-08-15",
+          "notes": "Equipment handling — borderline expired on job day"
+        }
+      ]
+    },
+    {
+      "name": "Zara Malik",
+      "department": "HR",
+      "records": [
+        {
+          "type": "certification",
+          "issuedDate": "2023-01-01",
+          "expiryDate": "2026-05-15",
+          "notes": "SHRM membership — expired"
+        },
+        {
+          "type": "training",
+          "issuedDate": "2026-07-01",
+          "expiryDate": "2026-08-18",
+          "notes": "Workplace harassment prevention"
+        }
+      ]
+    },
+    {
+      "name": "Tom Anderson",
+      "department": "Finance",
+      "records": [
+        {
+          "type": "visa",
+          "issuedDate": "2022-12-01",
+          "expiryDate": "2027-11-30",
+          "notes": "Long-term assignment visa"
+        },
+        {
+          "type": "background_check",
+          "issuedDate": "2025-06-01",
+          "expiryDate": "2026-08-27",
+          "notes": "Financial controls clearance"
+        }
+      ]
+    },
+    {
+      "name": "Nina de Silva",
+      "department": "Sales",
+      "records": [
+        {
+          "type": "certification",
+          "issuedDate": "2025-04-01",
+          "expiryDate": "2026-09-08",
+          "notes": "Export compliance certificate"
+        },
+        {
+          "type": "training",
+          "issuedDate": "2024-09-01",
+          "expiryDate": "2026-04-01",
+          "notes": "Ethics training — expired"
+        },
+        {
+          "type": "other",
+          "issuedDate": "2026-01-15",
+          "expiryDate": "2027-01-14",
+          "notes": "Partner portal access"
+        }
+      ]
+    }
+  ]
+}

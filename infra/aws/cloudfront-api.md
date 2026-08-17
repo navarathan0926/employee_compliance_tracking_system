@@ -1,6 +1,11 @@
 # CloudFront setup for EB single-instance API (HTTPS without ALB)
 #
-# Manual steps in AWS Console (ap-southeast-1 for EB origin, us-east-1 for ACM if using custom domain):
+# INTENDED path (Decision #24). BLOCKED on this AWS account until Support verifies it:
+#   "Your account must be verified before you can add new CloudFront resources."
+#
+# Workaround in use: API Gateway HTTP API as HTTPS proxy — see api-gateway.md
+#
+# Manual steps (ap-southeast-1 for EB origin, us-east-1 for ACM if using custom domain):
 #
 # 1. Create CloudFront distribution
 #    - Origin: EB environment URL (http://your-env.ap-southeast-1.elasticbeanstalk.com)

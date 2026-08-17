@@ -6,8 +6,8 @@ Run after all AWS resources are deployed in `ap-southeast-1`.
 
 - [ ] RDS migrated and seeded (`npm run migration:run`, `npm run seed`)
 - [ ] EB single instance running with env vars from `backend/.env.production`
-- [ ] CloudFront distribution pointing at EB (HTTPS API URL)
-- [ ] Amplify frontend built from `main` with `PUBLIC_API_BASE_URL` set to CloudFront API URL
+- [ ] HTTPS proxy in front of EB: API Gateway HTTP API (CloudFront blocked until account verification)
+- [ ] Amplify frontend built from `main` with `PUBLIC_API_BASE_URL` set to API Gateway URL (`…/api`)
 - [ ] Backend `CORS_ALLOWED_ORIGINS` set to Amplify URL
 - [ ] Lambda deployed with env from `expiry-job/.env.production`
 - [ ] EventBridge Scheduler enabled: `cron(0 1 * * ? *)`, timezone `Asia/Colombo`

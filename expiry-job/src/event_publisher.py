@@ -103,10 +103,13 @@ def build_event_payload(
 def _build_events_client(config: Config):
     client_kwargs: dict = {"region_name": config.aws_region}
     if config.aws_endpoint_url:
+        # LocalStack / custom endpoint only. On Lambda, AWS_ACCESS_KEY_ID is
+        # always set by the runtime; passing key+secret without AWS_SESSION_TOKEN
+        # causes UnrecognizedClientException.
         client_kwargs["endpoint_url"] = config.aws_endpoint_url
-    if config.aws_access_key_id and config.aws_secret_access_key:
-        client_kwargs["aws_access_key_id"] = config.aws_access_key_id
-        client_kwargs["aws_secret_access_key"] = config.aws_secret_access_key
+        if config.aws_access_key_id and config.aws_secret_access_key:
+            client_kwargs["aws_access_key_id"] = config.aws_access_key_id
+            client_kwargs["aws_secret_access_key"] = config.aws_secret_access_key
 
     timeout = config.api_request_timeout_seconds
     client_kwargs["config"] = BotoConfig(
