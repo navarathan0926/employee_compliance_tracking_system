@@ -46,7 +46,9 @@ export class ListComplianceRecordsQueryDto extends PaginationQueryDto {
   expiryTo?: string;
 }
 
-export function parseStatusFilter(status?: string): ComplianceStatus[] | undefined {
+export function parseStatusFilter(
+  status?: string,
+): ComplianceStatus[] | undefined {
   if (!status) {
     return undefined;
   }

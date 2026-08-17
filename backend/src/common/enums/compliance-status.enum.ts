@@ -12,7 +12,6 @@ export const EVALUABLE_STATUSES = [
   ComplianceStatus.EXPIRED,
 ] as const;
 
-export type EvaluableComplianceStatus =
-  (typeof EVALUABLE_STATUSES)[number];
+export type EvaluableComplianceStatus = (typeof EVALUABLE_STATUSES)[number];
 
 export const BULK_UPDATE_STATUSES = EVALUABLE_STATUSES;

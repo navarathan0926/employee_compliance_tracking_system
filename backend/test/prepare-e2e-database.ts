@@ -20,9 +20,7 @@ async function ensureE2eDatabaseExists(): Promise<void> {
     password: process.env.DATABASE_PASSWORD,
   });
 
-  await connection.query(
-    `CREATE DATABASE IF NOT EXISTS \`${databaseName}\``,
-  );
+  await connection.query(`CREATE DATABASE IF NOT EXISTS \`${databaseName}\``);
   await connection.end();
 }
 

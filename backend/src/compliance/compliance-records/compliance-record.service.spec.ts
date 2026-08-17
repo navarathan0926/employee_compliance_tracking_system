@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeepPartial, EntityManager, Repository } from 'typeorm';
 import { ComplianceConfigService } from '../../common/compliance-config.service';
 import { ComplianceStatus } from '../../common/enums/compliance-status.enum';
 import { ComplianceType } from '../../common/enums/compliance-type.enum';
@@ -14,6 +14,7 @@ describe('ComplianceRecordService', () => {
   let complianceRepo: jest.Mocked<Repository<ComplianceRecord>>;
   let employeeRepo: jest.Mocked<Repository<Employee>>;
   let bulkUpdateExecute: jest.Mock;
+  let saveMock: jest.Mock;
 
   const complianceConfig = {
     bufferDays: 30,
@@ -31,9 +32,15 @@ describe('ComplianceRecordService', () => {
       execute: bulkUpdateExecute,
     };
 
+    saveMock = jest.fn((value: DeepPartial<ComplianceRecord>) =>
+      Promise.resolve(value as ComplianceRecord),
+    );
+
     complianceRepo = {
-      create: jest.fn((value) => value),
-      save: jest.fn(async (value) => value),
+      create: jest.fn(
+        (value: DeepPartial<ComplianceRecord>) => value as ComplianceRecord,
+      ),
+      save: saveMock,
       findOne: jest.fn(),
       find: jest.fn(),
       softDelete: jest.fn(),
@@ -41,13 +48,18 @@ describe('ComplianceRecordService', () => {
         alias ? ({} as never) : bulkUpdateQueryBuilder,
       ),
       manager: {
-        transaction: jest.fn(async (callback) =>
+        transaction: jest.fn((callback: (manager: EntityManager) => unknown) =>
           callback({
             findOne: jest.fn(),
-            create: jest.fn((_, value) => value),
-            save: jest.fn(async (value) => ({ id: 99, ...value })),
+            create: jest.fn(
+              (_entity: unknown, value: DeepPartial<ComplianceRecord>) =>
+                value as ComplianceRecord,
+            ),
+            save: jest.fn((value: DeepPartial<ComplianceRecord>) =>
+              Promise.resolve({ id: 99, ...value } as ComplianceRecord),
+            ),
             softDelete: jest.fn(),
-          }),
+          } as unknown as EntityManager),
         ),
       },
     } as unknown as jest.Mocked<Repository<ComplianceRecord>>;
@@ -151,24 +163,26 @@ describe('ComplianceRecordService', () => {
 
     expect(result.processed).toBe(1);
     expect(bulkUpdateExecute).toHaveBeenCalledTimes(1);
-    expect(complianceRepo.save).not.toHaveBeenCalled();
+    expect(saveMock).not.toHaveBeenCalled();
   });
 
   it('throws when renewing an archived record', async () => {
-    complianceRepo.manager.transaction = jest.fn(async (callback) => {
-      const manager = {
-        findOne: jest.fn().mockResolvedValue({
-          id: 1,
-          employeeId: 1,
-          type: ComplianceType.VISA,
-          status: ComplianceStatus.ARCHIVED,
-        }),
-        create: jest.fn(),
-        save: jest.fn(),
-        softDelete: jest.fn(),
-      };
-      return callback(manager);
-    }) as never;
+    complianceRepo.manager.transaction = jest.fn(
+      (callback: (manager: EntityManager) => unknown) => {
+        const manager = {
+          findOne: jest.fn().mockResolvedValue({
+            id: 1,
+            employeeId: 1,
+            type: ComplianceType.VISA,
+            status: ComplianceStatus.ARCHIVED,
+          }),
+          create: jest.fn(),
+          save: jest.fn(),
+          softDelete: jest.fn(),
+        } as unknown as EntityManager;
+        return callback(manager);
+      },
+    ) as never;
 
     await expect(
       service.renew(1, {
@@ -181,6 +195,8 @@ describe('ComplianceRecordService', () => {
   it('throws NotFoundException when record does not exist', async () => {
     complianceRepo.findOne.mockResolvedValue(null);
 
-    await expect(service.findOne(404)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.findOne(404)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });

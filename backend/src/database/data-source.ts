@@ -18,7 +18,10 @@ export default new DataSource({
   database: process.env.DATABASE_NAME,
   timezone: 'Z',
   entities: [User, Employee, ComplianceRecord],
-  migrations: [InitialSchema1730000000000, RemoveLastEvaluatedStatus1730000000001],
+  migrations: [
+    InitialSchema1730000000000,
+    RemoveLastEvaluatedStatus1730000000001,
+  ],
   migrationsTableName: 'typeorm_migrations',
   extra: buildTypeOrmExtra(),
 });

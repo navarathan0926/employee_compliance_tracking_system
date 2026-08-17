@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -29,7 +26,9 @@ export class EmployeeService {
     return this.employeesRepository.save(employee);
   }
 
-  async findAll(query: ListEmployeesQueryDto): Promise<PaginatedResult<Employee>> {
+  async findAll(
+    query: ListEmployeesQueryDto,
+  ): Promise<PaginatedResult<Employee>> {
     const { limit, offset } = resolvePagination(query);
     const qb = this.employeesRepository
       .createQueryBuilder('employee')

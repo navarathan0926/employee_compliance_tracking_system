@@ -8,9 +8,7 @@ import { ComplianceStatus } from '../enums/compliance-status.enum';
 const VALID_STATUSES = new Set<string>(Object.values(ComplianceStatus));
 
 @ValidatorConstraint({ name: 'complianceStatusFilter', async: false })
-export class ComplianceStatusFilterConstraint
-  implements ValidatorConstraintInterface
-{
+export class ComplianceStatusFilterConstraint implements ValidatorConstraintInterface {
   validate(value: unknown): boolean {
     if (value === undefined || value === null || value === '') {
       return true;

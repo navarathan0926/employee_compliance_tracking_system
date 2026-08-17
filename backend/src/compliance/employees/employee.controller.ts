@@ -10,7 +10,12 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiNoContentResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiNoContentResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { ListEmployeesQueryDto } from './dto/list-employees-query.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
@@ -49,7 +54,9 @@ export class EmployeeController {
 
   @Delete(':id')
   @HttpCode(204)
-  @ApiNoContentResponse({ description: 'Employee archived; compliance records cascaded' })
+  @ApiNoContentResponse({
+    description: 'Employee archived; compliance records cascaded',
+  })
   async remove(@Param('id', ParseIntPipe) id: number) {
     await this.employeeService.archive(id);
   }

@@ -44,7 +44,9 @@ export class AuthService {
 
   async upsertUser(username: string, password: string): Promise<void> {
     const passwordHash = await this.hashPassword(password);
-    const existing = await this.usersRepository.findOne({ where: { username } });
+    const existing = await this.usersRepository.findOne({
+      where: { username },
+    });
 
     if (existing) {
       existing.passwordHash = passwordHash;
