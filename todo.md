@@ -36,25 +36,21 @@ Already done: frontend login, Lambda manual invoke 200, SQS Decision #7 payload.
 
 ## 3. GitHub Actions CI/CD (not needed for the 1am job)
 
-Workflows already exist under `.github/workflows/`. Remaining work is AWS OIDC + GitHub config.
-
-Guide: `infra/aws/github-oidc.md`
+Workflows deploy with an IAM user (not OIDC). Guide: `infra/aws/github-oidc.md`
 
 ### AWS
 
-- [ ] IAM → Identity providers → Add OIDC
-  - Provider URL: `https://token.actions.githubusercontent.com`
-  - Audience: `sts.amazonaws.com`
-- [ ] IAM role `github-actions-deploy` trusted for this repo `main` branch
-- [ ] Role permissions: EB deploy + `lambda:UpdateFunctionCode` on the expiry-job function
+- [ ] IAM user (e.g. `github-actions-deploy`) with EB + Lambda deploy permissions
+- [ ] Create access key (CLI / programmatic)
 
 ### GitHub → Settings → Secrets and variables → Actions
 
-**Secret**
+**Secrets**
 
 | Name | Value |
 |------|--------|
-| `AWS_ROLE_ARN` | `arn:aws:iam::640737808627:role/github-actions-deploy` (use the real role ARN) |
+| `AWS_ACCESS_KEY_ID` | IAM user access key ID |
+| `AWS_SECRET_ACCESS_KEY` | IAM user secret access key |
 
 **Variables** (use names from the AWS console)
 
@@ -72,8 +68,6 @@ Skip `DATABASE_*` / `SEED_*` unless you run `migrate.yml`. RDS is already migrat
 - [ ] Confirm `ci.yml` is green
 - [ ] If `backend/**` or `expiry-job/**` changed, confirm EB / Lambda deploy workflows succeed
 - [ ] Amplify rebuilds frontend automatically on `main`
-
-If OIDC takes too long: submit with live app + scheduled job + workflow files in the repo, and note OIDC as follow-up.
 
 ## 4. Optional later
 
